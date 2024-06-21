@@ -696,7 +696,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                                 hjust = 0, size = 4, inherit.aes = FALSE)
 
 # V - Liens entre abondance de prédateurs et équitabilité des proies ==================================================
-      # ===== V-1 - All_Species ---------------------------------------------------------------------------------        
+      # ===== V-1 - All_Species (Nb Reads) ---------------------------------------------------------------------------------        
       # Calculer l'abondance des prédateurs
       Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
         group_by(Parc, Isp) %>%
@@ -717,18 +717,6 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                   H_max = log(n_distinct(ReadName)),
                   J = H / H_max, .groups = 'drop')
       
-      #Probabilités d'interaction
-      # Calculer l'équitabilité des proies
-      Diversity_prey <- tab_pij2_All_species_Seuil_1_percent %>%
-        group_by(Parc, Isp, ReadName) %>%
-        summarise(Interaction_probability = sum(PijComb), .groups = 'drop')
-      
-      Diversity_prey_summary <- Diversity_prey %>%
-        group_by(Parc, Isp) %>%
-        summarise(H = diversity(Interaction_probability, index = "shannon"),
-                  S = n_distinct(ReadName),
-                  H_max = log(n_distinct(ReadName)),
-                  J = H / H_max, .groups = 'drop')
       
       # Fusionner les deux jeux de données
       result <- merge(Abundance_pred, Diversity_prey_occurrence, by = c("Parc", "Isp"))
@@ -817,12 +805,138 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
 
    # La relation entre l'abondance des prédateurs et l'équitabilité des proies n'est pas significative.
         
-      
+
+        # ===== V-2 - All_Species (PijComb) ---------------------------------------------------------------------------------        
+        # Calculer l'abondance des prédateurs
+        Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
+          group_by(Parc, Isp) %>%
+          summarise(abundance = n(), .groups = 'drop')
+        
+        # Calculer l'équitabilité des proies
+        Diversity_prey <- tab_pij2_All_species_Seuil_1_percent %>%
+          group_by(Parc, Isp, ReadName) %>%
+          summarise(Interaction_probability = sum(PijComb), .groups = 'drop')
+        
+        Diversity_prey_summary <- Diversity_prey %>%
+          group_by(Parc, Isp) %>%
+          summarise(H = vegan::diversity(Interaction_probability, index = "shannon"),
+                    S = n_distinct(ReadName),
+                    H_max = log(n_distinct(ReadName)),
+                    J = H / H_max, .groups = 'drop')
+        
+        # Fusionner les deux jeux de données
+        result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
+        result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
+        
+        # Standardiser les variables
+        result_scaled <- result %>%
+          mutate(predator_abundance_scaled = scale(abundance),
+                 prey_equitability_scaled = scale(J))
+        
+        result_scaled1 <- result_scaled %>% filter(Isp %in% unique(Isp)[1:8])
+        result_scaled2 <- result_scaled %>% filter(Isp %in% unique(Isp)[9:16])
+        result_scaled3 <- result_scaled %>% filter(Isp %in% unique(Isp)[17:24])
+        result_scaled4 <- result_scaled %>% filter(Isp %in% unique(Isp)[25:32])
+        result_scaled5 <- result_scaled %>% filter(Isp %in% unique(Isp)[33:40])
+        result_scaled6 <- result_scaled %>% filter(Isp %in% unique(Isp)[41:48])
+        result_scaled7 <- result_scaled %>% filter(Isp %in% unique(Isp)[49:52])
+        
+        # Visualiser la relation
+        ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled2, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled3, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled4, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled5, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled6, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 4, nrow = 2)
+        
+        # Visualiser la relation
+        ggplot(result_scaled7, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
+          geom_point() +
+          geom_text_repel(aes(label = Parc), size = 3) +
+          labs(x = "Abondance des prédateurs", y = "Équitabilité des proies (Indice de Pielou)") +
+          theme_minimal() +
+          facet_wrap(~ Isp, ncol = 2, nrow = 2)
+        
+        
+        # Test de la significativité
+        
+        # Ajuster le modèle de régression linéaire
+        model <- lm(prey_equitability_scaled ~ predator_abundance_scaled, data = result_scaled)
+        
+        # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+        model_summary <- tidy(model)
+        
+        # Afficher les résultats
+        print(model_summary)
+        
+        # La relation entre l'abondance des prédateurs et l'équitabilité des proies n'est pas significative.
+        
+        
+        
 # VI - Liens entre abondance prédateurs et diversité de Shannon des proies ============================================
-      # ===== VI-1 - All_Species --------------------------------------------------------------------------------        
+      # ===== VI-1 - All_Species (Nb Reads) --------------------------------------------------------------------------------        
       ###
       #Abondance des prédateurs et diversité de Shannon des proies
       ###
+        # Calculer l'abondance des prédateurs
+        Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
+          group_by(Parc, Isp) %>%
+          summarise(abundance = n(), .groups = 'drop')
+        
+        Richesse_proie <- tab_pij2_All_species_Seuil_1_percent %>%
+          group_by(Parc, Isp) %>%
+          summarise(SR_prey = n_distinct(ReadName), .groups = 'drop')
+        
+        Occurrence_prey <- tab_pij2_All_species_Seuil_1_percent %>%
+          group_by(Parc, Isp, ReadName) %>%
+          summarise(occurrences = n(), .groups = 'drop')
+        
+        Diversity_prey_occurrence <- Occurrence_prey %>%
+          group_by(Isp, Parc) %>%
+          summarise(H = vegan::diversity(occurrences, index = "shannon"),
+                    S = n_distinct(ReadName),
+                    H_max = log(n_distinct(ReadName)),
+                    J = H / H_max, .groups = 'drop')
       
       # Fusionner les deux jeux de données
       result <- merge(Abundance_pred, Diversity_prey_occurrence, by = c("Parc", "Isp"))
@@ -832,6 +946,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       result_scaled_diversity <- result %>%
         mutate(predator_abundance_scaled = scale(abundance),
                prey_diversity_scaled = scale(H))
+      
       unique(result_scaled_diversity$Isp)
       result_scaled1 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[1:8])
       result_scaled2 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[9:16])
@@ -909,6 +1024,122 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       # Afficher les résultats
       print(model_summary)
       
+      
+      # ===== VI-2 - All_Species (PijComb) --------------------------------------------------------------------------------        
+      ###
+      #Abondance des prédateurs et diversité de Shannon des proies
+      ###
+      # Calculer l'abondance des prédateurs
+      Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
+        group_by(Parc, Isp) %>%
+        summarise(abundance = n(), .groups = 'drop')
+      
+      # Calculer l'équitabilité des proies
+      Diversity_prey <- tab_pij2_All_species_Seuil_1_percent %>%
+        group_by(Parc, Isp, ReadName) %>%
+        summarise(Interaction_probability = sum(PijComb), .groups = 'drop')
+      
+      Diversity_prey_summary <- Diversity_prey %>%
+        group_by(Parc, Isp) %>%
+        summarise(H = vegan::diversity(Interaction_probability, index = "shannon"),
+                  S = n_distinct(ReadName),
+                  H_max = log(n_distinct(ReadName)),
+                  J = H / H_max, .groups = 'drop')
+      
+      # Fusionner les deux jeux de données
+      result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
+      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
+      
+      # Standardiser les variables
+      result_scaled <- result %>%
+        mutate(predator_abundance_scaled = scale(abundance),
+               prey_equitability_scaled = scale(J))
+      
+      # Fusionner les deux jeux de données
+      result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
+      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
+      
+      # Standardiser les variables
+      result_scaled <- result %>%
+        mutate(predator_abundance_scaled = scale(abundance),
+               prey_equitability_scaled = scale(J))
+      
+      unique(result_scaled_diversity$Isp)
+      result_scaled1 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[1:8])
+      result_scaled2 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[9:16])
+      result_scaled3 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[17:24])
+      result_scaled4 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[25:32])
+      result_scaled5 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[33:40])
+      result_scaled6 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[41:48])
+      result_scaled7 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[49:52])
+      
+      # Visualiser la relation
+      ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled2, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled3, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled4, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled5, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled6, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 4, nrow = 2)
+      
+      # Visualiser la relation
+      ggplot(result_scaled7, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
+        geom_point() +
+        geom_text_repel(aes(label = Parc), size = 3) +
+        labs(x = "Abondance des prédateurs", y = "Diversité des proies (Indice de Shannon)") +
+        theme_minimal() +
+        facet_wrap(~ Isp, ncol = 2, nrow = 2) 
+      
+      
+      # Test de la significativité
+      
+      # Ajuster le modèle de régression linéaire
+      model <- lm(prey_diversity_scaled ~ predator_abundance_scaled, data = result_scaled_diversity)
+      
+      # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+      model_summary <- tidy(model)
+      
+      # Afficher les résultats
+      print(model_summary)
       
 # VII - Réseau trophique ==============================================================================================                    
       # ===== VII-1 - All_Species --------------------------------------------------------------------------------        
