@@ -12,6 +12,7 @@ library(readxl)
 library(xlsx)
 library(bipartite)
 library(vegan)
+library(broom)
 
 #####Importation des donn?es#####
 
@@ -505,7 +506,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
             # ===== IV-1-a - Pour les prédateurs INS_Chrysopidae_sp, ARA_Pardosa_sp et INS_Lasius_niger ---------
 
             # Compter le nombre de valeurs uniques dans la colonne "ind" (Abondance totale des 3 espèces)
-            TAB_nombre_valeurs_uniques <- length(unique(tab_pij2_All_species$ind))
+            TAB_nombre_valeurs_uniques <- length(unique(TAB_Species_in_all_Parc$ind))
             
             # Compter le nombre de valeurs uniques dans la colonne "ind" pour chaque valeur unique de "Isp"
             Abundance_All_sp <- aggregate(ind ~ Isp, data = TAB_All_species, FUN = function(x) length(unique(x)))
@@ -702,10 +703,6 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         group_by(Parc, Isp) %>%
         summarise(abundance = n(), .groups = 'drop')
       
-      Richesse_proie <- tab_pij2_All_species_Seuil_1_percent %>%
-        group_by(Parc, Isp) %>%
-        summarise(SR_prey = n_distinct(ReadName), .groups = 'drop')
-      
       Occurrence_prey <- tab_pij2_All_species_Seuil_1_percent %>%
         group_by(Parc, Isp, ReadName) %>%
         summarise(occurrences = n(), .groups = 'drop')
@@ -719,11 +716,11 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       
       # Fusionner les deux jeux de données
-      result <- merge(Abundance_pred, Diversity_prey_occurrence, by = c("Parc", "Isp"))
-      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
+      result_nb_reads <- merge(Abundance_pred, Diversity_prey_occurrence, by = c("Parc", "Isp"))
+      result_nb_reads$FS <- substr(result_nb_reads$Parc, nchar(result_nb_reads$Parc), nchar(result_nb_reads$Parc))
       
       # Standardiser les variables
-      result_scaled <- result %>%
+      result_scaled_nb_reads_equitability <- result_nb_reads %>%
         mutate(predator_abundance_scaled = scale(abundance),
                prey_equitability_scaled = scale(J))
       
@@ -795,7 +792,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
     # Test de la significativité
 
         # Ajuster le modèle de régression linéaire
-        model <- lm(prey_equitability_scaled ~ predator_abundance_scaled, data = result_scaled)
+        model <- lm(prey_equitability_scaled ~ predator_abundance_scaled, data = result_scaled_nb_reads_equitability)
         
         # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
         model_summary <- tidy(model)
@@ -806,7 +803,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
    # La relation entre l'abondance des prédateurs et l'équitabilité des proies n'est pas significative.
         
 
-        # ===== V-2 - All_Species (PijComb) ---------------------------------------------------------------------------------        
+      # ===== V-2 - All_Species (PijComb) ---------------------------------------------------------------------------------        
         # Calculer l'abondance des prédateurs
         Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
           group_by(Parc, Isp) %>%
@@ -825,21 +822,21 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                     J = H / H_max, .groups = 'drop')
         
         # Fusionner les deux jeux de données
-        result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
-        result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
+        result_PijComb <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
+        result_PijComb$FS <- substr(result_PijComb$Parc, nchar(result_PijComb$Parc), nchar(result_PijComb$Parc))
         
         # Standardiser les variables
-        result_scaled <- result %>%
+        result_scaled_PijComb_equitability <- result_PijComb %>%
           mutate(predator_abundance_scaled = scale(abundance),
                  prey_equitability_scaled = scale(J))
         
-        result_scaled1 <- result_scaled %>% filter(Isp %in% unique(Isp)[1:8])
-        result_scaled2 <- result_scaled %>% filter(Isp %in% unique(Isp)[9:16])
-        result_scaled3 <- result_scaled %>% filter(Isp %in% unique(Isp)[17:24])
-        result_scaled4 <- result_scaled %>% filter(Isp %in% unique(Isp)[25:32])
-        result_scaled5 <- result_scaled %>% filter(Isp %in% unique(Isp)[33:40])
-        result_scaled6 <- result_scaled %>% filter(Isp %in% unique(Isp)[41:48])
-        result_scaled7 <- result_scaled %>% filter(Isp %in% unique(Isp)[49:52])
+        result_scaled1 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[1:8])
+        result_scaled2 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[9:16])
+        result_scaled3 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[17:24])
+        result_scaled4 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[25:32])
+        result_scaled5 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[33:40])
+        result_scaled6 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[41:48])
+        result_scaled7 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[49:52])
         
         # Visualiser la relation
         ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
@@ -901,8 +898,8 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         # Test de la significativité
         
         # Ajuster le modèle de régression linéaire
-        model <- lm(prey_equitability_scaled ~ predator_abundance_scaled, data = result_scaled)
-        
+        model <- lm(prey_equitability_scaled ~ predator_abundance_scaled, data = result_scaled_PijComb_equitability)
+
         # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
         model_summary <- tidy(model)
         
@@ -915,46 +912,19 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         
 # VI - Liens entre abondance prédateurs et diversité de Shannon des proies ============================================
       # ===== VI-1 - All_Species (Nb Reads) --------------------------------------------------------------------------------        
-      ###
-      #Abondance des prédateurs et diversité de Shannon des proies
-      ###
-        # Calculer l'abondance des prédateurs
-        Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
-          group_by(Parc, Isp) %>%
-          summarise(abundance = n(), .groups = 'drop')
+
+        # Standardiser les variables
+        result_scaled_nb_reads_diversity <- result_nb_reads %>%
+          mutate(predator_abundance_scaled = scale(abundance),
+                 prey_diversity_scaled = scale(H))
         
-        Richesse_proie <- tab_pij2_All_species_Seuil_1_percent %>%
-          group_by(Parc, Isp) %>%
-          summarise(SR_prey = n_distinct(ReadName), .groups = 'drop')
-        
-        Occurrence_prey <- tab_pij2_All_species_Seuil_1_percent %>%
-          group_by(Parc, Isp, ReadName) %>%
-          summarise(occurrences = n(), .groups = 'drop')
-        
-        Diversity_prey_occurrence <- Occurrence_prey %>%
-          group_by(Isp, Parc) %>%
-          summarise(H = vegan::diversity(occurrences, index = "shannon"),
-                    S = n_distinct(ReadName),
-                    H_max = log(n_distinct(ReadName)),
-                    J = H / H_max, .groups = 'drop')
-      
-      # Fusionner les deux jeux de données
-      result <- merge(Abundance_pred, Diversity_prey_occurrence, by = c("Parc", "Isp"))
-      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
-      
-      # Standardiser les variables
-      result_scaled_diversity <- result %>%
-        mutate(predator_abundance_scaled = scale(abundance),
-               prey_diversity_scaled = scale(H))
-      
-      unique(result_scaled_diversity$Isp)
-      result_scaled1 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[1:8])
-      result_scaled2 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[9:16])
-      result_scaled3 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[17:24])
-      result_scaled4 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[25:32])
-      result_scaled5 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[33:40])
-      result_scaled6 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[41:48])
-      result_scaled7 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[49:52])
+      result_scaled1 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[1:8])
+      result_scaled2 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[9:16])
+      result_scaled3 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[17:24])
+      result_scaled4 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[25:32])
+      result_scaled5 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[33:40])
+      result_scaled6 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[41:48])
+      result_scaled7 <- result_scaled_nb_reads_diversity %>% filter(Isp %in% unique(Isp)[49:52])
       
       # Visualiser la relation
       ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
@@ -1016,7 +986,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       # Test de la significativité
       
       # Ajuster le modèle de régression linéaire
-      model <- lm(prey_diversity_scaled ~ predator_abundance_scaled, data = result_scaled_diversity)
+      model <- lm(prey_diversity_scaled ~ predator_abundance_scaled, data = result_scaled_nb_reads_diversity)
       
       # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
       model_summary <- tidy(model)
@@ -1026,52 +996,19 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       
       # ===== VI-2 - All_Species (PijComb) --------------------------------------------------------------------------------        
-      ###
-      #Abondance des prédateurs et diversité de Shannon des proies
-      ###
-      # Calculer l'abondance des prédateurs
-      Abundance_pred <- tab_pij2_All_species_Seuil_1_percent %>%
-        group_by(Parc, Isp) %>%
-        summarise(abundance = n(), .groups = 'drop')
-      
-      # Calculer l'équitabilité des proies
-      Diversity_prey <- tab_pij2_All_species_Seuil_1_percent %>%
-        group_by(Parc, Isp, ReadName) %>%
-        summarise(Interaction_probability = sum(PijComb), .groups = 'drop')
-      
-      Diversity_prey_summary <- Diversity_prey %>%
-        group_by(Parc, Isp) %>%
-        summarise(H = vegan::diversity(Interaction_probability, index = "shannon"),
-                  S = n_distinct(ReadName),
-                  H_max = log(n_distinct(ReadName)),
-                  J = H / H_max, .groups = 'drop')
-      
-      # Fusionner les deux jeux de données
-      result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
-      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
-      
+
       # Standardiser les variables
-      result_scaled <- result %>%
+      result_scaled_PijComb_diversity <- result_PijComb %>%
         mutate(predator_abundance_scaled = scale(abundance),
-               prey_equitability_scaled = scale(J))
+               prey_diversity_scaled = scale(H))
       
-      # Fusionner les deux jeux de données
-      result <- merge(Abundance_pred, Diversity_prey_summary, by = c("Parc", "Isp"))
-      result$FS <- substr(result$Parc, nchar(result$Parc), nchar(result$Parc))
-      
-      # Standardiser les variables
-      result_scaled <- result %>%
-        mutate(predator_abundance_scaled = scale(abundance),
-               prey_equitability_scaled = scale(J))
-      
-      unique(result_scaled_diversity$Isp)
-      result_scaled1 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[1:8])
-      result_scaled2 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[9:16])
-      result_scaled3 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[17:24])
-      result_scaled4 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[25:32])
-      result_scaled5 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[33:40])
-      result_scaled6 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[41:48])
-      result_scaled7 <- result_scaled_diversity %>% filter(Isp %in% unique(Isp)[49:52])
+      result_scaled1 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[1:8])
+      result_scaled2 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[9:16])
+      result_scaled3 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[17:24])
+      result_scaled4 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[25:32])
+      result_scaled5 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[33:40])
+      result_scaled6 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[41:48])
+      result_scaled7 <- result_scaled_PijComb_diversity %>% filter(Isp %in% unique(Isp)[49:52])
       
       # Visualiser la relation
       ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_diversity_scaled, color = Parc)) +
@@ -1133,7 +1070,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       # Test de la significativité
       
       # Ajuster le modèle de régression linéaire
-      model <- lm(prey_diversity_scaled ~ predator_abundance_scaled, data = result_scaled_diversity)
+      model <- lm(prey_diversity_scaled ~ predator_abundance_scaled, data = result_scaled_PijComb_diversity)
       
       # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
       model_summary <- tidy(model)
@@ -1389,16 +1326,16 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       
       # Créez le graphique
-      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = ReadName)) +
+      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = ReadName, label = ReadName)) +
         geom_point() +
+        geom_text(vjust = -0.5, hjust = 0.5, size = 2) +
         theme_minimal() +
-        labs(title = "(Espèces dans tous les parcs) Probabilité d'interaction entre prédateurs et proies selon la richesse spécifique de prédateurs",
-             x = "Richesse spécifique de prédateurs",
+        labs(title = "(Espèces dans tous les parcs) Probabilité moyenne d'interaction entre prédateurs et proies selon l'abondance de prédateurs",
+             x = "Abondance de prédateurs",
              y = "Probabilité moyenne d'interaction") +
         scale_color_discrete() +
         facet_wrap(~Parc) +
         scale_fill_discrete(name = "Prey species")
-      
       
       TAB_Species_in_all_Parc_Red <- TAB_Species_in_all_Parc[,c('Isp','Parc','ReadName')]
       
@@ -1420,8 +1357,9 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       
       # Créez le graphique
-      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = ReadName)) +
+      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = ReadName, label = ReadName)) +
         geom_point() +
+        geom_text(vjust = -0.5, hjust = 0.5, size = 2) +  # Ajouter les noms des points avec une taille de texte réduite
         theme_minimal() +
         labs(title = "(Espèces dans tous les parcs) Probabilité moyenne d'interaction entre prédateurs et proies selon l'abondance de prédateurs",
              x = "Abondance de prédateurs",
@@ -1431,8 +1369,9 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         scale_fill_discrete(name = "Prey species")
       
       # Créez le graphique
-      ggplot(result, aes(x = Pred_Nb, y = Median_PijComb, color = ReadName)) +
+      ggplot(result, aes(x = Pred_Nb, y = Median_PijComb, color = ReadName, label = ReadName)) +
         geom_point() +
+        geom_text(vjust = -0.5, hjust = 0.5, size = 2) +  # Ajouter les noms des points avec une taille de texte réduite
         theme_minimal() +
         labs(title = "(Espèces dans tous les parcs) Probabilité médiane d'interaction entre prédateurs et proies selon l'abondance de prédateurs",
              x = "Abondance de prédateurs",
@@ -1442,10 +1381,10 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         scale_fill_discrete(name = "Prey species")
       
       
-      
       # Créez le graphique
-      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = Parc)) +
+      ggplot(result, aes(x = Pred_Nb, y = Mean_PijComb, color = Parc, label = Parc)) +
         geom_point() +
+        geom_text(vjust = -0.5, hjust = 0.5, size = 2) +  # Ajouter les noms des points avec une taille de texte réduite
         theme_minimal() +
         labs(title = "(Espèces dans tous les parcs) Probabilité moyenne d'interaction entre prédateurs et proies selon l'abondance de prédateurs",
              x = "Abondance de prédateurs",
@@ -1455,8 +1394,9 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         scale_fill_discrete(name = "Prey species")
       
       # Créez le graphique
-      ggplot(result, aes(x = Pred_Nb, y = Median_PijComb, color = Parc)) +
+      ggplot(result, aes(x = Pred_Nb, y = Median_PijComb, color = Parc, label = Parc)) +
         geom_point() +
+        geom_text(vjust = -0.5, hjust = 0.5, size = 2) +  # Ajouter les noms des points avec une taille de texte réduite
         theme_minimal() +
         labs(title = "(Espèces dans tous les parcs) Probabilité médiane d'interaction entre prédateurs et proies selon l'abondance de prédateurs",
              x = "Abondance de prédateurs",
