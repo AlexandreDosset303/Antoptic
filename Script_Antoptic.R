@@ -13,6 +13,7 @@ library(xlsx)
 library(bipartite)
 library(vegan)
 library(broom)
+library(reshape2)
 
 #####Importation des donn?es#####
 
@@ -649,7 +650,10 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
             rarecurve(Ratio_prey_shannon_diversity_prey_abundance_All_species[, c("prey_abundance", "prey_shannon_diversity")], step = 1, sample = raremax, col = colors, cex = 0.6,
                       main = "Courbe de raréfaction", ylab = "Diversité de Shannon des proies", plot = FALSE)
             
+            rare_results <- rarecurve(Ratio_prey_shannon_diversity_prey_abundance_All_species[, c("prey_abundance", "prey_shannon_diversity")], step = 1, sample = raremax, col = colors, cex = 0.6, plot = FALSE)
             
+            rare_results[[1]]
+            head(rare_results[[1]]) 
             # La courbe de raréfaction montre comment la richesse spécifique augmente avec le nombre d'individus échantillonnés.
             # cela suggère que davantage d'échantillons pourraient révéler encore plus de diversité.
             ordilabel(cbind(rowSums(Ratio_prey_shannon_diversity_prey_abundance_All_species[, c(2,3)]), specnumber(Ratio_prey_shannon_diversity_prey_abundance_All_species[, c(2,3)])), labels=Ratio_prey_shannon_diversity_prey_abundance_All_species$Parc, col = colors)
@@ -724,13 +728,13 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
         mutate(predator_abundance_scaled = scale(abundance),
                prey_equitability_scaled = scale(J))
       
-      result_scaled1 <- result_scaled %>% filter(Isp %in% unique(Isp)[1:8])
-      result_scaled2 <- result_scaled %>% filter(Isp %in% unique(Isp)[9:16])
-      result_scaled3 <- result_scaled %>% filter(Isp %in% unique(Isp)[17:24])
-      result_scaled4 <- result_scaled %>% filter(Isp %in% unique(Isp)[25:32])
-      result_scaled5 <- result_scaled %>% filter(Isp %in% unique(Isp)[33:40])
-      result_scaled6 <- result_scaled %>% filter(Isp %in% unique(Isp)[41:48])
-      result_scaled7 <- result_scaled %>% filter(Isp %in% unique(Isp)[49:52])
+      result_scaled1 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[1:8])
+      result_scaled2 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[9:16])
+      result_scaled3 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[17:24])
+      result_scaled4 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[25:32])
+      result_scaled5 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[33:40])
+      result_scaled6 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[41:48])
+      result_scaled7 <- result_scaled_nb_reads_equitability %>% filter(Isp %in% unique(Isp)[49:52])
       
       # Visualiser la relation
       ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
@@ -830,13 +834,13 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
           mutate(predator_abundance_scaled = scale(abundance),
                  prey_equitability_scaled = scale(J))
         
-        result_scaled1 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[1:8])
-        result_scaled2 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[9:16])
-        result_scaled3 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[17:24])
-        result_scaled4 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[25:32])
-        result_scaled5 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[33:40])
-        result_scaled6 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[41:48])
-        result_scaled7 <- result_scaled_PijComb %>% filter(Isp %in% unique(Isp)[49:52])
+        result_scaled1 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[1:8])
+        result_scaled2 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[9:16])
+        result_scaled3 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[17:24])
+        result_scaled4 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[25:32])
+        result_scaled5 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[33:40])
+        result_scaled6 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[41:48])
+        result_scaled7 <- result_scaled_PijComb_equitability %>% filter(Isp %in% unique(Isp)[49:52])
         
         # Visualiser la relation
         ggplot(result_scaled1, aes(x = predator_abundance_scaled, y = prey_equitability_scaled, color = Parc)) +
@@ -1225,7 +1229,9 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
 
 # VIII - Visualisation des probabilités d'interaction par type de parcelle =============================================                 
       # ===== VIII-1 - All_species -----------------------------------------------------------------------        
-      ggplot(tab_pij2_All_species_Seuil_1_percent, aes(x=Parc, y=PijComb)) +
+      tab_pij2_All_species_Seuil_1_percent$FS <- substr(tab_pij2_All_species_Seuil_1_percent$Parc, nchar(tab_pij2_All_species_Seuil_1_percent$Parc), nchar(tab_pij2_All_species_Seuil_1_percent$Parc))
+      
+      ggplot(tab_pij2_All_species_Seuil_1_percent, aes(x=Parc, y=PijComb, fill = FS)) +
         geom_boxplot() +
         theme_minimal() +
         labs(title="Distribution des probabilités d'interaction par type de parcelle",
@@ -1255,7 +1261,6 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       # summary(sens_model)
 
       
-      tab_pij2_All_species_Seuil_1_percent$FS <- substr(tab_pij2_All_species_Seuil_1_percent$Parc, nchar(tab_pij2_All_species_Seuil_1_percent$Parc), nchar(tab_pij2_All_species_Seuil_1_percent$Parc))
       
       modele <- glmer(PijComb ~ FS + (1|Isp) + (1|ReadName), data = tab_pij2_All_species_Seuil_1_percent, family = binomial)
       summary(modele)
@@ -1268,6 +1273,14 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
              x = "Farming system",
              y = "Interaction probability")
 
+      # Effectuer un test t de Student
+      t_test <- t.test(PijComb ~ FS, data = tab_pij2_All_species_Seuil_1_percent)
+      
+      # Afficher les résultats du test
+      print(t_test)
+      
+      # La différence observée est que le groupe C a une moyenne légèrement plus élevée que le groupe B.
+      
       # ===== VIII-2 - Species_in_all_Parc -----------------------------------------------------------------------        
       tab_pij2_Species_in_all_Parc_Seuil_1_percent$FS <- substr(tab_pij2_Species_in_all_Parc_Seuil_1_percent$Parc, nchar(tab_pij2_Species_in_all_Parc_Seuil_1_percent$Parc), nchar(tab_pij2_Species_in_all_Parc_Seuil_1_percent$Parc))
       
@@ -1282,6 +1295,12 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
              x = "Farming system",
              y = "Interaction probability")
       
+      # Effectuer un test t de Student
+      t_test <- t.test(PijComb ~ FS, data = tab_pij2_Species_in_all_Parc_Seuil_1_percent)
+      
+      # Afficher les résultats du test
+      print(t_test)
+      
       # Create the boxplot and facet by species (Isp)
       ggplot(tab_pij2_Species_in_all_Parc_Seuil_1_percent, aes(x = FS, y = PijComb, fill = FS)) +
         geom_boxplot() +
@@ -1292,6 +1311,31 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
              y = "Interaction probability")
 
 
+      tab_pij2_Species_in_all_Parc_Seuil_1_percent_Pardosa <- tab_pij2_Species_in_all_Parc_Seuil_1_percent %>%
+        filter(Isp == "ARA_Pardosa_sp")
+      
+      tab_pij2_Species_in_all_Parc_Seuil_1_percent_Chrysopidae <- tab_pij2_Species_in_all_Parc_Seuil_1_percent %>%
+        filter(Isp == "INS_Chrysopidae_sp")
+      
+      tab_pij2_Species_in_all_Parc_Seuil_1_percent_Lasius <- tab_pij2_Species_in_all_Parc_Seuil_1_percent %>%
+        filter(Isp == "INS_Lasius_niger")
+      
+      
+      # Effectuer un test t de Student
+      t_test <- t.test(PijComb ~ FS, data = tab_pij2_Species_in_all_Parc_Seuil_1_percent_Pardosa)
+      # Afficher les résultats du test
+      print(t_test)
+      
+      # Effectuer un test t de Student
+      t_test <- t.test(PijComb ~ FS, data = tab_pij2_Species_in_all_Parc_Seuil_1_percent_Chrysopidae)
+      # Afficher les résultats du test
+      print(t_test)
+      
+      # Effectuer un test t de Student
+      t_test <- t.test(PijComb ~ FS, data = tab_pij2_Species_in_all_Parc_Seuil_1_percent_Lasius)
+      # Afficher les résultats du test
+      print(t_test)
+      
 # IX - Probabilité moyenne et médiane pour chaque proie d’être prédatée en fonction du nombre de prédateur par parcelle ===============================                    
       # ===== IX-1 - Species_in_all_Parc -----------------------------------------------------------------------        
       # Visualiser les différences de probabilités d'interaction entre les types de parcelles
@@ -1881,3 +1925,1758 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
   
   abline(v = raremax, col = "red", lty = 2) 
   
+  
+  # Correlation niveau d'infestation avec contenus stomacaux -----------  
+  
+  # Importation de la feuille CR_Paysage
+  
+  CR_Paysage <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/CR_Paysage.txt", header = TRUE, sep = "")
+  CR_Paysage <- rename(CR_Paysage, Parc = parc)
+  
+  #Niveau d'infestation = CR_Paysage$Occurences esp
+  #Contenus stomacaux = PijComb moyen sur l'ensemble des prédateurs pour le bioagresseur donné tab_pij2_All_species_Seuil_1_percent
+  
+  #Phylloxera
+      #CR_Paysage$Ophyl
+      #tab_pij2_All_species_Seuil_1_percent$ReadName == INS_Phylloxeridae_daktulosphera + moyenne PijComb
+  Ophyl <- CR_Paysage[, c("Parc", "Ophyl")]
+  Ophyl <- na.omit(Ophyl)
+  Ophyl$Ophyl_scaled <- scale(Ophyl$Ophyl, center = TRUE, scale = TRUE)
+  Ophyl <- Ophyl %>%
+    group_by(Parc) %>%
+    summarise(
+      Mean_Ophyl_scaled = mean(Ophyl_scaled),
+    )
+  
+  Pij_Ophyl <- subset(tab_pij2_All_species_Seuil_1_percent, ReadName == "INS_Phylloxeridae_Daktulosphaira")
+  Pij_Ophyl <- Pij_Ophyl[, c("Isp", "Parc", "ReadName", "PijComb")]
+  Pij_Ophyl <- na.omit(Pij_Ophyl)
+  Pij_Ophyl$PijComb_scaled <- scale(Pij_Ophyl$PijComb, center = TRUE, scale = TRUE)
+  Pij_Ophyl <- Pij_Ophyl %>%
+    group_by(Parc) %>%
+    summarise(
+      PijComb_scaled = mean(PijComb_scaled),
+    )
+  
+  Graph_Phylloxera <- Ophyl
+  Graph_Phylloxera <- merge(Graph_Phylloxera, Pij_Ophyl[, c("Parc", "PijComb_scaled")], by = "Parc", all.x = TRUE)
+  Graph_Phylloxera <- na.omit(Graph_Phylloxera)
+  
+  
+  Graphique_Phylloxera <- ggplot(Graph_Phylloxera, aes(x = Mean_Ophyl_scaled, y = PijComb_scaled)) +
+    geom_point(color = "blue", size = 3) +  # Ajouter les points
+    geom_text(aes(label = Parc), 
+              vjust = -0.5,         # Décalage vertical vers le haut
+              hjust = -0.2,
+              color = "black",       # Couleur des labels
+              angle = 70,          # Inclinaison des labels
+              size = 3) +          # Taille du texte
+    labs(x = "Occurence Phylloxera", 
+         y = "Mean_PijComb_Ophyl", 
+         title = "Graphique de Mean_PijComb_Ophyl en fonction de l'occurence de Phylloxera") +
+    theme_minimal()  # Utilisation d'un thème minimaliste
+  
+  Graphique_Phylloxera
+  
+  Graphique_Phylloxera <- Graphique_Phylloxera + geom_smooth(method = "lm", color = "blue", se = FALSE) +  # Ajouter la droite de régression linéaire
+    labs(x = "Occurrence Phylloxera", 
+         y = "Mean_PijComb_Ophyl", 
+         title = "Graphique de Mean_PijComb_Ophyl en fonction de l'occurence de Phylloxera") +
+    theme_minimal()  # Utilisation d'un thème minimaliste
+  
+  Graphique_Phylloxera
+  
+  correlation_Phylloxera <- cor(Graph_Phylloxera$Mean_Ophyl_scaled, Graph_Phylloxera$PijComb_scaled, use = "complete.obs")
+  print(correlation_Phylloxera)
+  
+  
+  #Tordeuse
+      #CR_Paysage$Otord
+      #tab_pij2_All_species_Seuil_1_percent$ReadName == INS_Tortricidae_Lobesia + moyenne PijComb
+  Otord <- CR_Paysage[, c("Parc", "Otord")]
+  Otord <- na.omit(Otord)
+  Otord$Otord_scaled <- scale(Otord$Otord, center = TRUE, scale = TRUE)
+  Otord <- Otord %>%
+    group_by(Parc) %>%
+    summarise(
+      Mean_Otord_scaled = mean(Otord_scaled),
+    )
+  
+  Pij_Otord <- subset(tab_pij2_All_species_Seuil_1_percent, ReadName == "INS_Tortricidae_Lobesia")
+  Pij_Otord <- Pij_Otord[, c("Isp", "Parc", "ReadName", "PijComb")]
+  Pij_Otord <- na.omit(Pij_Otord)
+  Pij_Otord$PijComb_scaled <- scale(Pij_Otord$PijComb, center = TRUE, scale = TRUE)
+  Pij_Otord <- Pij_Otord %>%
+    group_by(Parc) %>%
+    summarise(
+      PijComb_scaled = mean(PijComb_scaled),
+    )
+  
+  Graph_Tordeuse <- Otord
+  Graph_Tordeuse <- merge(Graph_Tordeuse, Pij_Otord[, c("Parc", "PijComb_scaled")], by = "Parc", all.x = TRUE)
+  Graph_Tordeuse <- na.omit(Graph_Tordeuse)
+  
+  
+  Graphique_Tordeuse <- ggplot(Graph_Tordeuse, aes(x = Mean_Otord_scaled, y = PijComb_scaled)) +
+    geom_point(color = "red", size = 3) +  # Ajouter les points
+    geom_text(aes(label = Parc), 
+              vjust = -0.5,         # Décalage vertical vers le haut
+              hjust = -0.2,
+              color = "black",       # Couleur des labels
+              angle = 70,          # Inclinaison des labels
+              size = 3) +          # Taille du texte
+    labs(x = "Occurence Tordeuse", 
+         y = "Mean_PijComb_Otord", 
+         title = "Graphique de Mean_PijComb_Otord en fonction de l'occurence de Tordeuse") +
+    theme_minimal()  # Utilisation d'un thème minimaliste
+  
+  Graphique_Tordeuse
+  
+  
+  #Cicadellidae
+      #CR_Paysage$Ocica
+      #tab_pij2_All_species_Seuil_1_percent$ReadName == INS_Cicadellidae_Empoasca + INS_Cicadellidae_Scaphoideus + moyenne PijComb
+  Ocica <- CR_Paysage[, c("Parc", "cult", "site", "Ocica")]
+  Ocica <- na.omit(Ocica)
+  Ocica$Ocica_scaled <- scale(Ocica$Ocica, center = TRUE, scale = TRUE)
+  Ocica <- Ocica %>%
+    group_by(Parc) %>%
+    summarise(
+      Mean_Ocica_scaled = mean(Ocica_scaled),
+    )
+  
+  Pij_Ocica <- subset(tab_pij2_All_species_Seuil_1_percent, ReadName %in% c("INS_Cicadellidae_Empoasca", "INS_Cicadellidae_Scaphoideus"))
+  Pij_Ocica <- Pij_Ocica[, c("Isp", "Parc", "ReadName", "PijComb")]
+  Pij_Ocica <- na.omit(Pij_Ocica)
+  Pij_Ocica$PijComb_scaled <- scale(Pij_Ocica$PijComb, center = TRUE, scale = TRUE)
+  Pij_Ocica <- Pij_Ocica %>%
+    group_by(Parc) %>%
+    summarise(
+      PijComb_scaled = mean(PijComb_scaled),
+    )
+  
+  Graph_Cicadellidae <- Ocica
+  Graph_Cicadellidae <- merge(Graph_Cicadellidae, Pij_Ocica[, c("Parc", "PijComb_scaled")], by = "Parc", all.x = TRUE)
+  Graph_Cicadellidae <- na.omit(Graph_Cicadellidae)
+  
+  Graphique_Cicadellidae <- ggplot(Graph_Cicadellidae, aes(x = Mean_Ocica_scaled, y = PijComb_scaled)) +
+    geom_point(color = "green", size = 3) +  # Ajouter les points
+    geom_text(aes(label = Parc), 
+              vjust = -0.5,         # Décalage vertical vers le haut
+              hjust = -0.2,
+              color = "black",       # Couleur des labels
+              angle = 70,          # Inclinaison des labels
+              size = 3) +          # Taille du texte
+    labs(x = "Occurence Cicadellidae", 
+         y = "Mean_PijComb_Ocica", 
+         title = "Graphique de Mean_PijComb_Ocica en fonction de l'occurence de Cicadellidae") +
+    theme_minimal()  # Utilisation d'un thème minimaliste
+  
+  Graphique_Cicadellidae
+  
+  Graphique_Cicadellidae <- Graphique_Cicadellidae + geom_smooth(method = "lm", color = "green", se = FALSE) +  # Ajouter la droite de régression linéaire
+    labs(x = "Occurrence Cicadellidae", 
+         y = "Mean_PijComb_Ocica", 
+         title = "Graphique de Mean_PijComb_tord en fonction de l'occurence de Cicadellidae") +
+    theme_minimal()  # Utilisation d'un thème minimaliste
+  
+  Graphique_Cicadellidae
+  
+  correlation_Cicadellidae <- cor(Graph_Cicadellidae$Mean_Ocica_scaled, Graph_Cicadellidae$PijComb_scaled, use = "complete.obs")
+  print(correlation_Cicadellidae)
+  
+  
+  library(patchwork)
+  combined_plot <- Graphique_Phylloxera / Graphique_Tordeuse / Graphique_Cicadellidae
+  print(combined_plot)
+  
+  
+  # Occurence = Observation
+  # Fréquence = Effectif ramené à l'effectif total
+  
+  # Agréger les données par parcelle pour obtenir la fréquence d'observation des couples proies-prédateurs
+  freq_interactions_par_parc <- tab_pij2_All_species_Seuil_1_percent %>%
+    group_by(Parc) %>%
+    summarise(Frequence_interactions = n()) %>%
+    ungroup()
+  
+  # Joindre ReadName également
+  freq_interactions_par_parc_2 <- tab_pij2_All_species_Seuil_1_percent %>%
+    group_by(Parc, ReadName) %>%
+    summarise(Frequence_interactions = n()) %>%
+    ungroup()
+  # INS_Totricidae_Lobesia, INS_Phyllaxeridae_daktulosphora, INS_Cicadellidae_Empoasca, INS_Cicadellidae_Scaphoideus
+  freq_interactions_par_parc_2 <- freq_interactions_par_parc_2 %>%
+    filter(ReadName %in% c("INS_Tortricidae_Lobesia", 
+                           "INS_Phylloxeridae_Daktulosphaira", 
+                           "INS_Cicadellidae_Empoasca", 
+                           "INS_Cicadellidae_Scaphoideus"))
+  
+  CR_Paysage_tord <- CR_Paysage[, c("Parc", "Otord")]  
+  CR_Paysage_tord <- na.omit(CR_Paysage_tord)
+  CR_Paysage_tord <- CR_Paysage_tord %>%
+    group_by(Parc) %>%
+    summarize(Otord = sum(Otord))
+  
+  # Joindre les deux tableaux
+  freq_interactions_par_parc_3 <- CR_Paysage_tord %>%
+    left_join(freq_interactions_par_parc_2, by = "Parc")
+  freq_interactions_par_parc_3 <- na.omit(freq_interactions_par_parc_3)
+  
+  freq_Tordeuse <- freq_interactions_par_parc_3 %>%
+    filter(ReadName %in% c("INS_Tortricidae_Lobesia"))
+  # Calculer la corrélation entre le niveau d'infestation et la fréquence d'observation
+  correlation_Tordeuse <- cor(freq_Tordeuse$Otord, freq_Tordeuse$Frequence_interactions, use = "complete.obs")
+  print(correlation_Tordeuse)
+  
+  # CR_Paysage_Ophyl à faire 
+  CR_Paysage_phyl <- CR_Paysage[, c("Parc", "Ophyl")]  
+  CR_Paysage_phyl <- na.omit(CR_Paysage_phyl)
+  CR_Paysage_phyl <- CR_Paysage_phyl %>%
+    group_by(Parc) %>%
+    summarize(Ophyl = sum(Ophyl))
+  
+  # Joindre les deux tableaux
+  freq_interactions_par_parc_4 <- CR_Paysage_phyl %>%
+    left_join(freq_interactions_par_parc_2, by = "Parc")
+  freq_interactions_par_parc_4 <- na.omit(freq_interactions_par_parc_4)
+  
+  freq_Phylloxera <- freq_interactions_par_parc_4 %>%
+    filter(ReadName %in% c("INS_Phylloxeridae_Daktulosphaira"))
+  # Calculer la corrélation entre le niveau d'infestation et la fréquence d'observation
+  correlation_Phylloxera <- cor(freq_Phylloxera$Ophyl, freq_Phylloxera$Frequence_interactions, use = "complete.obs")
+  print(correlation_Phylloxera)
+  
+  
+  # CR_Paysage_Ophyl à faire 
+  CR_Paysage_cica <- CR_Paysage[, c("Parc", "Ocica")]  
+  CR_Paysage_cica <- na.omit(CR_Paysage_cica)
+  CR_Paysage_cica <- CR_Paysage_cica %>%
+    group_by(Parc) %>%
+    summarize(Ocica = sum(Ocica))
+  
+  # Joindre les deux tableaux
+  freq_interactions_par_parc_5 <- CR_Paysage_cica %>%
+    left_join(freq_interactions_par_parc_2, by = "Parc")
+  freq_interactions_par_parc_5 <- na.omit(freq_interactions_par_parc_5)
+  
+  freq_Cicadellidae <- freq_interactions_par_parc_5 %>%
+    filter(ReadName %in% c("INS_Cicadellidae_Empoasca", "INS_Cicadellidae_Scaphoideus"))
+  # Calculer la corrélation entre le niveau d'infestation et la fréquence d'observation
+  correlation_Cicadellidae <- cor(freq_Cicadellidae$Ocica, freq_Cicadellidae$Frequence_interactions, use = "complete.obs")
+  print(correlation_Cicadellidae)
+  
+  
+  # Joindre les deux tableaux
+  tab_infest_inter <- CR_Paysage %>%
+    left_join(freq_interactions_par_parc, by = "Parc")
+  
+  # Calculer la corrélation entre le niveau d'infestation et la fréquence d'observation
+  correlation <- cor(tab_infest_inter$Ococh, tab_infest_inter$Frequence_interactions, use = "complete.obs")
+  print(correlation)
+  
+  # Comment tout comparer en même temps ?
+  
+  model <- lm(Ococh ~ culture + AC + AB + HSNtot + foret + prairie + urb + ABconv + Zarrac + Vaband + eau, data = tab_infest_inter)
+  summary(model)
+  
+  tab_infest_inter <- tab_infest_inter %>%
+    filter(!is.na(Ococh))
+           
+  pca <- prcomp(tab_infest_inter[, c("Ococh","culture", "AC", "AB", "HSNtot", "foret","prairie", "urb", "ABconv", "Zarrac", "Vaband", "eau")], scale. = TRUE)
+  summary(pca)
+  biplot(pca)
+
+
+  # Séparer les données en deux : abondances d'espèces et variables environnementales
+  abondances <- tab_infest_inter[, c("Parc", "Ococh", "Oerin", "Obrot", "Ocica", "Omild", "Ophyl", "Otord")]
+  abondances <- na.omit(abondances)
+  abondances_clean <- subset(abondances, select=-c(Parc))
+
+  #environnement <- tab_infest_inter[, c("Parc", "culture", "AC", "AB", "HSNtot", "foret","prairie", "urb", "ABconv", "Zarrac", "Vaband", "eau")]  
+  environnement <- tab_infest_inter[, c("Parc", "culture", "AC", "AB", "HSNtot", "urb", "ABconv", "Vaband", "eau")]  
+  environnement <- na.omit(environnement)
+  environnement_clean <- subset(environnement, select=-c(Parc))
+
+  tab_infest_inter_clean <- cbind(abondances_clean, environnement_clean)
+
+  pca_resultat <- prcomp(tab_infest_inter_clean, center = TRUE, scale. = TRUE)
+  biplot(pca_resultat, scale = 0)
+  
+  summary(pca_resultat)
+  
+  
+  tab_infest_inter_clean_scaled <- scale(tab_infest_inter_clean)
+  data.pca <- princomp(tab_infest_inter_clean_scaled)
+  summary(data.pca)
+  
+  data.pca$loadings[, 1:2]
+  
+  #-------------
+  library(FactoMineR)
+  library(factoextra)
+  library(ggplot2)
+  
+  fviz_eig(data.pca, addlabels = TRUE)
+  
+  fviz_pca_var(data.pca, col.var = "black", repel = TRUE)
+  # All the variables that are grouped together are positively correlated to each other ().
+  # The higher the distance between the variable and the origin, the better represented that variable is.
+  # Variables that are negatively correlated are displayed to the opposite sides of the biplot’s origin.
+  
+  
+  fviz_cos2(data.pca, choice = "var", axes = 1:2)
+  
+  
+  fviz_pca_var(data.pca, col.var = "cos2",
+               gradient.cols = c("black", "orange", "green"),
+               repel = TRUE)
+  
+  # https://www.datacamp.com/tutorial/pca-analysis-r
+
+  
+  # Créer le biplot avec ellipses pour 'cult'
+  p <- fviz_pca_biplot(data.pca,
+                       habillage = tab_infest_inter$Parc,  # Colorer les points selon 'cult'
+                       addEllipses = TRUE                  # Ajouter des ellipses autour des groupes
+  )
+  
+  p
+  
+  # Ajouter les étiquettes basées sur 'Parc'
+  p + geom_text(aes(label = tab_infest_inter$Parc), 
+                vjust = -0.5,    # Ajuster la position verticale des étiquettes
+                hjust = 1,       # Ajuster la position horizontale des étiquettes
+                size = 3,        # Taille des étiquettes
+                color = "black") # Couleur des étiquettes
+  
+
+
+  
+  
+### Boucle sur les réseaux trophiques pour chaque prédateur ###
+
+  library(reshape2)
+  library(vegan)  # Assurez-vous que 'vegan' est installé pour utiliser 'plotweb'
+  
+  # Transformer le data frame en matrice
+  interaction_matrix_All_species <- reshape2::dcast(tab_pij2_All_species_Seuil_1_percent, ReadName ~ Isp, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+  
+  # Mettre les noms de lignes et de colonnes
+  rownames(interaction_matrix_All_species) <- interaction_matrix_All_species[, 1]
+  interaction_matrix_All_species <- as.matrix(interaction_matrix_All_species[, -1])                    
+  
+  # Trier les lignes par ordre alphabétique des noms de lignes
+  interaction_matrix_All_species <- interaction_matrix_All_species[order(rownames(interaction_matrix_All_species)), ]
+  
+  # Obtenir les noms des colonnes
+  col_names <- colnames(interaction_matrix_All_species)
+  
+  # Boucle sur chaque colonne
+  n_col <- ncol(interaction_matrix_All_species)
+  for (i in seq_len(n_col)) {
+    # Sélectionner la colonne actuelle
+    interaction_matrix_subset <- interaction_matrix_All_species[, i, drop = FALSE]
+    
+    # Vérifier si la matrice sélectionnée contient des données
+    if (all(rowSums(interaction_matrix_subset) == 0)) {
+      next  # Passer cette itération si toutes les valeurs sont à 0
+    }
+    
+    # Définir le nom du fichier PNG
+    file_name <- paste0("graph_", col_names[i], ".png")
+    
+    # Créer un fichier PNG avec une résolution plus élevée
+    #png(filename = file_name, width = 3400, height = 2000, res = 300)
+    
+    # Paramètres graphiques pour réduire la taille du graphique
+    op <- par(mar = c(5, 4, 4, 2) + 0.1, cex = 1)
+    
+    # Créer le graphique
+    plotweb(interaction_matrix_subset, method = "normal", 
+            low.lablength = 30, arrow = "down", high.lablength = 30,
+            text.rot = 0, col.low = "grey", ybig = 1, 
+            y.width.high = 0.03, y.width.low = 0.03, bor.col.interaction = NA)
+    
+    # Ajouter un titre avec le nom de la colonne
+    title(main = paste("Graph for column:", col_names[i]))
+    
+    # Fermer le fichier PNG pour enregistrer le plot
+    dev.off()
+    
+    # Confirmation de sauvegarde
+    #cat("Saved", file_name, "\n")
+  }
+  
+  
+  
+
+### Le régime alimentaire est-il différent entre bio et conv (en virant les effets confondants (Nb indiv capturés, ...), Analyses de sensibilité)
+  interaction_counts <- tab_pij2_All_species_Seuil_1_percent %>%
+    group_by(Parc) %>%
+    summarize(NbInteractions = n())
+  
+  Test <- merge(tab_pij2_All_species_Seuil_1_percent, interaction_counts, by = "Parc")
+  
+  library(lme4)
+  
+  # Modèle mixte avec effet fixe pour la méthode de culture et effet aléatoire pour le parc
+  model <- lmer(PijComb ~ FS + NbInteractions + (1 | Parc), data = Test)
+  summary(model)
+  
+  # Il y a un effet significatif du nombre d’interactions sur PijComb.
+  # Plus le nombre d’individus capturés augmente, plus les probabilités d'intéraction sont faibles.
+  
+  # ---
+  
+  tab_pij2_All_species_Seuil_1_percent$Parc_Red <- str_extract(tab_pij2_All_species_Seuil_1_percent$Parc, "^\\d+")
+  
+  # Visualiser la probabilité d'interaction par type de parcelle
+  ggplot(tab_pij2_All_species_Seuil_1_percent, aes(x = Parc_Red, y = PijComb, color = FS)) +
+    geom_boxplot() +
+    labs(title = "Distribution des Probabilités d'Interaction par Type de Parcelle")
+
+  ggplot(tab_pij2_All_species_Seuil_1_percent, aes(x = PijComb, fill = FS)) +
+    geom_density(alpha = 0.5) +
+    facet_wrap(~Parc_Red) +
+    labs(title = "Distribution des Probabilités d'Interaction par Type de Parcelle")
+  
+  
+  test_diff_per_pair <- function(data) {
+    # Liste des parcelles uniques
+    Parc <- unique(tab_pij2_All_species_Seuil_1_percent$Parc_Red)
+    
+    # Liste pour stocker les résultats
+    results <- data.frame(Parc = character(), p_value = numeric(), stringsAsFactors = FALSE)
+    
+    # Tester chaque parcelle
+    for (Parc in Parc) {
+      # Filtrer les données pour la parcelle actuelle
+      subset_data <- tab_pij2_All_species_Seuil_1_percent[tab_pij2_All_species_Seuil_1_percent$Parc_Red == Parc, ]
+      
+      # Vérifier qu'il y a exactement 2 niveaux de FS pour la parcelle
+      if(length(unique(subset_data$FS)) == 2) {
+        # Effectuer un test de Wilcoxon-Mann-Whitney (non paramétrique)
+        test_result <- wilcox.test(PijComb ~ FS, data = subset_data)
+        
+        # Stocker le résultat
+        results <- rbind(results, data.frame(Parc = Parc, p_value = test_result$p.value))
+      }
+    }
+    
+    return(results)
+  }
+  
+  # Appliquer la fonction aux données
+  test_results <- test_diff_per_pair(tab_pij2_All_species_Seuil_1_percent)
+  print(test_results)
+  
+#   Parc      p_value
+#   1088 9.152002e-03
+#   1435 5.946060e-07
+#   1650 5.410627e-01
+#   1662 4.526226e-01
+#   1868 2.157376e-0
+  
+  
+  library(caret)
+  
+  # Créer un objet de contrôle pour la validation croisée k-fold
+  control <- trainControl(method = "cv", number = 10)
+  
+  # Entraîner un modèle en utilisant la validation croisée
+  model <- train(PijComb ~ FS + Parc_Red, data = tab_pij2_All_species_Seuil_1_percent,
+                 method = "glm", # ou un autre modèle comme "rf" pour Random Forest
+                 trControl = control)
+  
+  # Résultats de la validation croisée
+  print(model)
+  
+  # Exemple de données (simulées)
+  set.seed(123)
+  tab_pij2_All_species_Seuil_1_percent_Test <- data.frame(
+    PijComb = rnorm(1000),
+    FS = rep(c("B", "C"), each = 500),
+    Parc_Red = sample(1:10, 1000, replace = TRUE)
+  )
+  # Modèle de régression de base
+  base_model <- lm(PijComb ~ FS + Parc_Red, data = tab_pij2_All_species_Seuil_1_percent)
+  summary(base_model)
+  
+  # Fonction pour ajuster le modèle avec différents seuils
+  test_thresholds <- function(data, thresholds) {
+    results <- data.frame(Threshold = numeric(), p_value = numeric(), stringsAsFactors = FALSE)
+    
+    for (thresh in thresholds) {
+      # Filtrer les données selon le seuil
+      filtered_data <- data %>% filter(PijComb >= quantile(PijComb, probs = thresh))
+      
+      # Ajuster le modèle sur les données filtrées
+      model <- lm(PijComb ~ FS + Parc_Red, data = filtered_data)
+      
+      # Obtenir la valeur p pour l'effet du type de parcelle
+      p_value <- summary(model)$coefficients["FSC", "Pr(>|t|)"]
+      
+      # Stocker les résultats
+      results <- rbind(results, data.frame(Threshold = thresh, p_value = p_value))
+    }
+    
+    return(results)
+  }
+  
+  # Testez avec plusieurs seuils
+  thresholds <- seq(0.01, 0.10, by = 0.01)
+  sensitivity_results <- test_thresholds(tab_pij2_All_species_Seuil_1_percent, thresholds)
+  print(sensitivity_results)
+  
+  
+  # Fonction pour comparer les méthodes statistiques
+  compare_methods <- function(data) {
+    results <- data.frame(Method = character(), p_value = numeric(), stringsAsFactors = FALSE)
+    
+    # Régression linéaire
+    model_lm <- lm(PijComb ~ FS + Parc_Red, data = data)
+    p_value_lm <- summary(model_lm)$coefficients["FSC", "Pr(>|t|)"]
+    
+    # Test de Wilcoxon-Mann-Whitney
+    test_wilcox <- wilcox.test(PijComb ~ FS, data = data)
+    p_value_wilcox <- test_wilcox$p.value
+    
+    # Stocker les résultats
+    results <- rbind(results, data.frame(Method = "Linear Model", p_value = p_value_lm))
+    results <- rbind(results, data.frame(Method = "Wilcoxon", p_value = p_value_wilcox))
+    
+    return(results)
+  }
+  
+  # Comparer les méthodes
+  method_comparison <- compare_methods(tab_pij2_All_species_Seuil_1_percent)
+  print(method_comparison)
+  
+  
+  # Fonction pour analyser les sous-groupes
+  analyze_subgroups <- function(data, subgroups) {
+    results <- data.frame(Subgroup = character(), p_value = numeric(), stringsAsFactors = FALSE)
+    
+    for (sub in subgroups) {
+      # Filtrer les données selon le sous-groupe
+      subgroup_data <- data %>% filter(Parc_Red == sub)
+      
+      # Ajuster le modèle
+      model <- lm(PijComb ~ FS, data = subgroup_data)
+      p_value <- summary(model)$coefficients["FSC", "Pr(>|t|)"]
+      
+      # Stocker les résultats
+      results <- rbind(results, data.frame(Subgroup = sub, p_value = p_value))
+    }
+    
+    return(results)
+  }
+  
+  # Analyser différents sous-groupes
+  subgroups <- unique(tab_pij2_All_species_Seuil_1_percent$Parc_Red)
+  subgroup_results <- analyze_subgroups(tab_pij2_All_species_Seuil_1_percent, subgroups)
+  print(subgroup_results)
+  
+  
+  # Visualiser les résultats de la sensibilité au seuil
+  ggplot(sensitivity_results, aes(x = Threshold, y = p_value)) +
+    geom_line() +
+    geom_point() +
+    labs(title = "Sensibilité aux Seuils de Détection",
+         x = "Seuil de Détection",
+         y = "Valeur p")
+  
+  # Visualiser les résultats de la comparaison des méthodes
+  ggplot(method_comparison, aes(x = Method, y = p_value)) +
+    geom_bar(stat = "identity") +
+    labs(title = "Comparaison des Méthodes Statistiques",
+         x = "Méthode",
+         y = "Valeur p")
+  
+  # Visualiser les résultats des sous-groupes
+  ggplot(subgroup_results, aes(x = Subgroup, y = p_value)) +
+    geom_bar(stat = "identity") +
+    labs(title = "Sensibilité aux Sous-Groupes",
+         x = "Sous-Groupe",
+         y = "Valeur p")
+  
+  
+  
+  
+  # Charger les bibliothèques nécessaires
+  library(caret)
+  library(ggplot2)
+  
+  # Simuler un jeu de données
+  set.seed(123)
+  data <- data.frame(
+    PijComb = rnorm(1000),
+    FS = factor(rep(c("B", "C"), each = 500)),
+    Parc_Red = sample(1:10, 1000, replace = TRUE)
+  )
+  
+  # Créer un objet de contrôle pour la validation croisée k-fold
+  control <- trainControl(method = "cv", number = 10)
+  
+  # Entraîner le modèle de régression linéaire avec validation croisée
+  model <- train(PijComb ~ FS + Parc_Red, data = data,
+                 method = "lm",                # Méthode de régression linéaire
+                 trControl = control)          # Contrôle de validation croisée
+  
+  # Afficher les résultats du modèle
+  results <- model$results
+  print(results)
+  
+  # Visualiser la performance moyenne (RMSE) avec écart type
+  ggplot(results, aes(x = "", y = RMSE)) +
+    geom_col(fill = "skyblue") +
+    geom_errorbar(aes(ymin = RMSE - RMSESD, ymax = RMSE + RMSESD), width = 0.2) +
+    labs(title = "Erreur Quadratique Moyenne (RMSE) avec Écart Type",
+         x = "Modèle",
+         y = "Erreur Quadratique Moyenne (RMSE)") +
+    theme_minimal()
+  
+  #Interprétation Finale
+  #Performance Générale : Le modèle semble avoir une erreur relativement élevée (RMSE) et une capacité d'explication de la variance très faible (Rsquared). Ces indicateurs suggèrent que le modèle n'explique pas bien les données.
+  #Stabilité : Les faibles écarts types pour RMSE, Rsquared, et MAE montrent que la performance du modèle est relativement stable à travers les différents folds, bien que la performance moyenne ne soit pas très bonne.
+
+ # Chercher si la diversité des régimes alimentaires des prédateurs (?) est liée à une composition différente ou une disponibilité de proies   
+        # Dans un paysage en fonction de %conv, %bio et %HSN  
+  
+ # Comment décorréler la composition du paysage avec la composition de la communauté de prédateurs
+  
+  # Fusionner les deux tables par la colonne 'Parc'
+  data_merged <- merge(Test, CR_Paysage, by = "Parc")
+  
+  # Sélection des colonnes de composition du paysage pour l'ACP
+  paysage_vars <- data_merged %>% select(PijComb, NbInteractions, Ococh, Oerin, Obrot, Omild, Ophyl, Otord, culture, AC, AB, HSNtot, foret, prairie, urb, eau)
+
+  # Effectuer l'ACP
+  pca_paysage <- prcomp(paysage_vars, scale. = TRUE)
+  
+  # Afficher un résumé des résultats de l'ACP
+  summary(pca_paysage)
+  
+  # Extraire les scores des composantes principales
+  pca_scores <- pca_paysage$x
+  
+  # Ajouter les scores au tableau fusionné
+  data_merged <- cbind(data_merged, pca_scores)
+  
+  
+  # Charger le package lme4 pour les modèles linéaires mixtes
+  library(lme4)
+  
+  # Modèle linéaire mixte avec la diversité des prédateurs comme variable réponse
+  # et les scores PCA comme variables explicatives
+  lmm <- lmer(NbInteractions ~ PC1 + PC2 + PC3 + (1 | Isp), data = data_merged)
+  
+  # Résumé du modèle
+  summary(lmm)
+  
+  # Test de l'ANOVA pour le modèle
+  anova(lmm)
+  
+  # Charger ggplot2 pour la visualisation
+  library(ggplot2)
+  
+  # Visualiser les scores de l'ACP
+  ggplot(data_merged, aes(x = PC1, y = NbInteractions, color = Isp)) +
+    geom_point() +
+    theme_minimal() +
+    labs(title = "Relation entre la première composante principale (PC1) et les interactions des prédateurs")
+  
+  
+  
+  #  --- Calcul de la diversité de proies pour chaque prédateur par parcelle --------  #
+library(vegan)
+  # Calcul de la diversité des proies par prédateur et par parcelle
+  diversity_data <- tab_pij2_All_species_Seuil_1_percent %>%
+    group_by(Parc, Isp) %>%
+    summarise(Diversity_Shannon = vegan::diversity(table(ReadName), index = "shannon"))
+  
+  # Afficher les résultats
+  print(diversity_data)
+  
+  
+  
+  # Calculer les proportions des espèces de proies pour chaque prédateur dans chaque parcelle
+  composition_data <- tab_pij2_All_species_Seuil_1_percent %>%
+    group_by(Parc, Isp, ReadName) %>%
+    summarise(Freq = n()) %>%  # Calcul de la fréquence de chaque proie
+    mutate(Proportion = Freq / sum(Freq)) %>%  # Calcul de la proportion
+    ungroup()
+  
+  # Afficher les résultats
+  print(composition_data)
+
+  
+  # Fusionner les données de diversité des prédateurs et la composition des proies
+  merged_data <- merge(diversity_data[,c("Parc","Isp", "Diversity_Shannon")], composition_data[,c("Parc","Isp", "Proportion")], by = c("Parc","Isp"))
+  
+  # Calculer la corrélation entre la diversité des prédateurs et la diversité des proies
+  correlation_result <- cor.test(merged_data$Diversity_Shannon, merged_data$Proportion)
+  print(correlation_result)  
+  
+  
+  # Préparer les données pour la RDA
+  # Fusionner les données de diversité des prédateurs et la composition des proies
+  merged_data <- merge(diversity_data[, c("Parc", "Isp", "Diversity_Shannon")], 
+                       composition_data[, c("Parc", "Isp", "Proportion")], by = c("Parc", "Isp"))
+  
+  # Calculer la corrélation entre la diversité des prédateurs et la composition des proies
+  correlation_result <- cor.test(merged_data$Diversity_Shannon, merged_data$Proportion)
+  print(correlation_result)
+  
+  # Préparer les données pour la RDA
+  # Table de diversité des prédateurs (explanatory variables)
+  X <- as.data.frame(diversity_data[, c("Parc","Diversity_Shannon"), drop = FALSE])
+  str(X)
+  class(X)
+  # Table de composition des proies (response variables)
+  Y <- as.data.frame.matrix(table(tab_pij2_All_species_Seuil_1_percent$Parc, 
+                                  tab_pij2_All_species_Seuil_1_percent$ReadName))
+  
+  X_aggregated <- aggregate(. ~ Parc, data = X, FUN = mean)
+
+  Y$Parc <- rownames(Y)
+  Y <- as.matrix(Y)
+  
+  
+  data_combined <- merge(Y, X_aggregated, by = "Parc")
+  data_combined %>%
+    relocate("Parc")
+  
+  # Vérifiez la structure du data frame pour identifier les types de colonnes
+  str(data_combined[, -1])
+  
+  # Filtrer seulement les colonnes numériques
+  data_combined_numeric <- data_combined[, sapply(data_combined[, -1], is.numeric)]
+  
+  # Vérifiez les colonnes conservées
+  str(data_combined_numeric)
+  
+  data_combined_numeric <- data_combined[, -which(names(data_combined) == "Parc")]
+  data_combined_numeric <- as.data.frame(data_combined_numeric)
+  sapply(data_combined_numeric, class)
+  # Convertir les colonnes en numériques si possible
+  data_combined_numeric[] <- lapply(data_combined_numeric, function(x) as.numeric(as.character(x)))
+  
+  # Retirer les colonnes non numériques
+  data_combined_numeric <- data_combined_numeric[, sapply(data_combined_numeric, is.numeric)]
+  dim(Y)
+  dim(data_combined_numeric)
+  
+  Y_matrix <- as.matrix(Y)
+  dim(Y_matrix)
+  
+  # Appliquer la RDA avec les colonnes numériques uniquement
+  #rda_result <- rda(Y_matrix ~ ., data = data_combined_numeric)
+  
+  # Résultats de la RDA
+  #summary(rda_result)
+  #plot(rda_result)
+  
+  # Modèle linéaire mixte
+  library(lme4)
+  lmm_model <- lmer(Diversity_Shannon ~ Proportion + (1|Parc), data = merged_data)
+  
+  # Résultats du modèle
+  summary(lmm_model)
+  
+#Interprétation Générale
+#Impact de la Proportion : La proportion semble avoir un effet très significatif et négatif sur la diversité de Shannon. Cela signifie qu'une augmentation de la proportion est associée à une réduction de la diversité dans les données de votre modèle.
+#Variabilité entre les Parcelles : La variabilité entre les parcelles est faible, suggérant que la principale source de variabilité dans la diversité de Shannon est expliquée par la proportion plutôt que par les différences entre les parcelles.
+  
+
+# XV - Centrality ----------------------------------------
+
+# Regarder la stabilité de la probabilité d’interaction avec l’ensemble des proies (graphiquement) = plot probabilité d’interaction par espèces de proies par parcelles
+
+# plot probabilité d’interaction par espèces de proies par parcelles  
+
+library(RColorBrewer)
+
+  # ===== XV - Pardosa_sp -----------------------------------------------------------------------        
+  p <- ggplot(Pardosa_data, aes(x = ReadName, y = PijComb, fill = Parc)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par espèce de proie et parcelles pour ARA_Pardosa_sp"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_ARA_Pardosa_sp.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  
+  p <- ggplot(Pardosa_data, aes(x = Parc, y = PijComb, fill = ReadName)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par parcelles et par espèce de proie pour ARA_Pardosa_sp"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_ARA_Pardosa_sp_2.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  
+  # Comparer les probabilités d'interaction pour chaque proie
+  # Calculer les moyennes de PijComb par ReadName
+  Pardosa_mean_pijcomb <- aggregate(PijComb ~ ReadName, data = Pardosa_data, FUN = mean)
+  print(Pardosa_mean_pijcomb)
+  
+  # Analyse statistique : ANOVA pour tester si les moyennes de PijComb diffèrent significativement entre les différentes proies.
+  # ANOVA à un facteur : déterminer s'il existe une préférence significative pour certaines proies.
+  # ANOVA pour tester si les moyennes de PijComb diffèrent significativement entre les ReadName
+  anova_result <- aov(PijComb ~ ReadName, data = Pardosa_data)
+  summary(anova_result)
+  
+  # L'ANOVA montre une différence significative, on utilise un test post-hoc (Tukey HSD) pour identifier quelles paires de proies diffèrent significativement en termes de probabilité d'interaction.
+  # Test post-hoc pour voir quelles proies sont préférées
+  tukey_result <- TukeyHSD(anova_result)
+  print(tukey_result)  
+  
+  # Boxplot pour visualiser la distribution des PijComb pour chaque ReadName
+  library(ggplot2)
+  
+  ggplot(Pardosa_data, aes(x = ReadName, y = PijComb)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Distribution des probabilités d'interaction (PijComb) par proie",
+         x = "Proie (ReadName)",
+         y = "Probabilité d'interaction (PijComb)")  
+  
+  # Calculer la moyenne globale de PijComb
+  mean_pijcomb_overall <- mean(Pardosa_data$PijComb)
+  
+  # Pour chaque proie, calculer un rapport de préférence :
+  # Rapport de préférence = Moyenne de PijComb pour une proie / Moyenne de PijComb pour toutes les proies
+  # Un rapport supérieur à 1 indique une préférence pour cette proie, tandis qu'un rapport inférieur à 1 indique une préférence moindre.
+  
+  # Ajouter une colonne avec le rapport de préférence
+  Pardosa_data$PreferenceRatio <- Pardosa_data$PijComb / mean_pijcomb_overall
+  
+  # Visualiser les rapports de préférence
+  print(aggregate(PreferenceRatio ~ ReadName, data = Pardosa_data, FUN = mean))
+  
+  # Classer les données par ordre décroissant de PreferenceRatio
+  Pardosa_data_sorted <- aggregate(PreferenceRatio ~ ReadName, data = Pardosa_data, FUN = mean)
+  Pardosa_data_sorted <- Pardosa_data_sorted[order(-Pardosa_data_sorted$PreferenceRatio), ]
+  
+  # Ajouter une colonne de couleurs en fonction du rapport de préférence
+  Pardosa_data_sorted$Color <- factor(cut(Pardosa_data_sorted$PreferenceRatio,
+                                          breaks = c(-Inf, 0.9, 1.1, Inf),
+                                          labels = c("Proie moins privilégiée", 
+                                                     "Proie moyennement privilégiée", 
+                                                     "Proie privilégiée")),
+                                      levels = c("Proie privilégiée", 
+                                                 "Proie moyennement privilégiée", 
+                                                 "Proie moins privilégiée"))
+  
+  # Créer un barplot avec les ReadName classés par ordre décroissant de PreferenceRatio et couleurs personnalisées
+  p <- ggplot(Pardosa_data_sorted, aes(x = reorder(ReadName, -PreferenceRatio), y = PreferenceRatio, fill = Color)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c("Proie privilégiée" = "darkgreen",
+                                 "Proie moyennement privilégiée" = "lightgreen", 
+                                 "Proie moins privilégiée" = "lightgrey"),
+                      labels = c("Proie privilégiée", 
+                                 "Proie moyennement privilégiée", 
+                                 "Proie moins privilégiée")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Rapport de préférence des proies pour ARA_Pardosa_sp",
+         x = "Proie (ReadName)",
+         y = "Rapport de Préférence (moyenne)",
+         fill = "Catégorie de Préférence")  # Ajouter une légende pour les couleurs
+  
+  p
+  
+  ggsave(filename = "Rapport de préférence des proies pour ARA_Pardosa_sp.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  # ===== XV - INS_Chrysopidae_sp -----------------------------------------------------------------------        
+  p <- ggplot(Chrysopidae_data, aes(x = ReadName, y = PijComb, fill = Parc)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par espèce de proie et parcelles pour INS_Chrysopidae_sp"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_INS_Chrysopidae_sp.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  p <- ggplot(Chrysopidae_data, aes(x = Parc, y = PijComb, fill = ReadName)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par parcelles et par espèce de proie pour INS_Chrysopidae_sp"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_INS_Chrysopidae_sp_2.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  
+  # Comparer les probabilités d'interaction pour chaque proie
+  # Calculer les moyennes de PijComb par ReadName
+  Chrysopidae_mean_pijcomb <- aggregate(PijComb ~ ReadName, data = Chrysopidae_data, FUN = mean)
+  print(Chrysopidae_mean_pijcomb)
+  
+  # Analyse statistique : ANOVA pour tester si les moyennes de PijComb diffèrent significativement entre les différentes proies.
+  # ANOVA à un facteur : déterminer s'il existe une préférence significative pour certaines proies.
+  # ANOVA pour tester si les moyennes de PijComb diffèrent significativement entre les ReadName
+  anova_result <- aov(PijComb ~ ReadName, data = Chrysopidae_data)
+  summary(anova_result)
+  
+  # L'ANOVA montre une différence significative, on utilise un test post-hoc (Tukey HSD) pour identifier quelles paires de proies diffèrent significativement en termes de probabilité d'interaction.
+  # Test post-hoc pour voir quelles proies sont préférées
+  tukey_result <- TukeyHSD(anova_result)
+  print(tukey_result)  
+  
+  # Boxplot pour visualiser la distribution des PijComb pour chaque ReadName
+  library(ggplot2)
+  
+  ggplot(Chrysopidae_data, aes(x = ReadName, y = PijComb)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Distribution des probabilités d'interaction (PijComb) par proie",
+         x = "Proie (ReadName)",
+         y = "Probabilité d'interaction (PijComb)")  
+  
+  # Calculer la moyenne globale de PijComb
+  mean_pijcomb_overall <- mean(Chrysopidae_data$PijComb)
+  
+  
+  # Pour chaque proie, calculer un rapport de préférence :
+  # Rapport de préférence = Moyenne de PijComb pour une proie / Moyenne de PijComb pour toutes les proies
+  # Un rapport supérieur à 1 indique une préférence pour cette proie, tandis qu'un rapport inférieur à 1 indique une préférence moindre.
+  
+  # Ajouter une colonne avec le rapport de préférence
+  Chrysopidae_data$PreferenceRatio <- Chrysopidae_data$PijComb / mean_pijcomb_overall
+  
+  # Visualiser les rapports de préférence
+  print(aggregate(PreferenceRatio ~ ReadName, data = Chrysopidae_data, FUN = mean))
+  
+  # Classer les données par ordre décroissant de PreferenceRatio
+  Chrysopidae_data_sorted <- aggregate(PreferenceRatio ~ ReadName, data = Chrysopidae_data, FUN = mean)
+  Chrysopidae_data_sorted <- Chrysopidae_data_sorted[order(-Chrysopidae_data_sorted$PreferenceRatio), ]
+  
+  # Ajouter une colonne de couleurs en fonction du rapport de préférence
+  Chrysopidae_data_sorted$Color <- factor(cut(Chrysopidae_data_sorted$PreferenceRatio,
+                                          breaks = c(-Inf, 0.9, 1.1, Inf),
+                                          labels = c("Proie moins privilégiée", 
+                                                     "Proie moyennement privilégiée", 
+                                                     "Proie privilégiée")),
+                                      levels = c("Proie privilégiée", 
+                                                 "Proie moyennement privilégiée", 
+                                                 "Proie moins privilégiée"))
+  
+  # Créer un barplot avec les ReadName classés par ordre décroissant de PreferenceRatio et couleurs personnalisées
+  p <- ggplot(Chrysopidae_data_sorted, aes(x = reorder(ReadName, -PreferenceRatio), y = PreferenceRatio, fill = Color)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c("Proie privilégiée" = "darkgreen",
+                                 "Proie moyennement privilégiée" = "lightgreen", 
+                                 "Proie moins privilégiée" = "lightgrey"),
+                      labels = c("Proie privilégiée", 
+                                 "Proie moyennement privilégiée", 
+                                 "Proie moins privilégiée")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Rapport de préférence des proies pour INS_Chrysopidae_sp",
+         x = "Proie (ReadName)",
+         y = "Rapport de Préférence (moyenne)",
+         fill = "Catégorie de Préférence")  # Ajouter une légende pour les couleurs
+  
+  p
+  
+  ggsave(filename = "Rapport de préférence des proies pour INS_Chrysopidae_sp.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+
+# ===== XV - INS_Lasius_niger -----------------------------------------------------------------------        
+  p <- ggplot(Lasius_data, aes(x = ReadName, y = PijComb, fill = Parc)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par espèce de proie et parcelles pour INS_Lasius_niger"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_INS_Lasius_niger.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+
+  p <- ggplot(Lasius_data, aes(x = Parc, y = PijComb, fill = ReadName)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.7) +
+    scale_x_discrete(drop = FALSE) +
+    labs(
+      x = "Espèce de proie",
+      y = "Probabilité d'interaction (PijComb)",
+      title = "Probabilité d'interaction par parcelles et par espèce de proie pour INS_Lasius_niger"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  p
+  
+  #ggsave(filename = "Probabilite_Interaction_INS_Lasius_niger_2.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+  
+  
+# Comparer les probabilités d'interaction pour chaque proie
+  
+  # Calculer les moyennes de PijComb par ReadName
+  Lasius_mean_pijcomb <- aggregate(PijComb ~ ReadName, data = Lasius_data, FUN = mean)
+  print(Lasius_mean_pijcomb)
+
+# Analyse statistique : ANOVA pour tester si les moyennes de PijComb diffèrent significativement entre les différentes proies.
+  # ANOVA à un facteur : déterminer s'il existe une préférence significative pour certaines proies.
+  
+  # Tester si les moyennes de PijComb diffèrent significativement entre les ReadName
+  anova_result <- aov(PijComb ~ ReadName, data = Lasius_data)
+  summary(anova_result)
+  
+  # L'ANOVA montre une différence significative, on utilise un test post-hoc (Tukey HSD) pour identifier quelles paires de proies diffèrent significativement en termes de probabilité d'interaction.
+  # Test post-hoc pour voir quelles proies sont préférées
+  tukey_result <- TukeyHSD(anova_result)
+  print(tukey_result)  
+  
+  # Boxplot pour visualiser la distribution des PijComb pour chaque ReadName
+  library(ggplot2)
+  
+  ggplot(Lasius_data, aes(x = ReadName, y = PijComb)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Distribution des probabilités d'interaction (PijComb) par proie",
+         x = "Proie (ReadName)",
+         y = "Probabilité d'interaction (PijComb)")  
+  
+  # Pour chaque proie, calculer un rapport de préférence :
+  # Rapport de préférence = Moyenne de PijComb pour une proie / Moyenne de PijComb pour toutes les proies
+  # Un rapport supérieur à 1 indique une préférence pour cette proie, tandis qu'un rapport inférieur à 1 indique une préférence moindre.
+  # Calculer la moyenne globale de PijComb
+  mean_pijcomb_overall <- mean(Lasius_data$PijComb)
+  
+  # Ajouter une colonne avec le rapport de préférence
+  Lasius_data$PreferenceRatio <- Lasius_data$PijComb / mean_pijcomb_overall
+  
+  # Visualiser les rapports de préférence
+  print(aggregate(PreferenceRatio ~ ReadName, data = Lasius_data, FUN = mean))
+  
+  # Classer les données par ordre décroissant de PreferenceRatio
+  Lasius_data_sorted <- aggregate(PreferenceRatio ~ ReadName, data = Lasius_data, FUN = mean)
+  Lasius_data_sorted <- Lasius_data_sorted[order(-Lasius_data_sorted$PreferenceRatio), ]
+  
+  # Ajouter une colonne de couleurs en fonction du rapport de préférence
+  Lasius_data_sorted$Color <- factor(cut(Lasius_data_sorted$PreferenceRatio,
+                                              breaks = c(-Inf, 0.9, 1.1, Inf),
+                                              labels = c("Proie moins privilégiée", 
+                                                         "Proie moyennement privilégiée", 
+                                                         "Proie privilégiée")),
+                                          levels = c("Proie privilégiée", 
+                                                     "Proie moyennement privilégiée", 
+                                                     "Proie moins privilégiée"))
+  
+  # Créer un barplot avec les ReadName classés par ordre décroissant de PreferenceRatio et couleurs personnalisées
+  p <- ggplot(Lasius_data_sorted, aes(x = reorder(ReadName, -PreferenceRatio), y = PreferenceRatio, fill = Color)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c("Proie privilégiée" = "darkgreen",
+                                 "Proie moyennement privilégiée" = "lightgreen", 
+                                 "Proie moins privilégiée" = "lightgrey"),
+                      labels = c("Proie privilégiée", 
+                                 "Proie moyennement privilégiée", 
+                                 "Proie moins privilégiée")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Rapport de préférence des proies pour INS_Lasius_niger",
+         x = "Proie (ReadName)",
+         y = "Rapport de Préférence (moyenne)",
+         fill = "Catégorie de Préférence")  # Ajouter une légende pour les couleurs
+  
+  p
+  
+  ggsave(filename = "Rapport de préférence des proies pour INS_Lasius_niger.jpeg", plot = p, width = 10, height = 7, dpi = 300)
+
+  
+  
+# ===== XVI - Point du 03-09-2024 avec Adrien -----------------------------------------------------------------------        
+  # Uiterwaal 2023
+  
+  library(dplyr)
+  
+  # Obtenir toutes les valeurs uniques de la colonne Parc
+  parc_values <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
+  
+  # Fonction pour filtrer la table en fonction du parc
+  filter_by_parc <- function(parc) {
+    tab_pij2_filtered <- tab_pij2_All_species_Seuil_1_percent %>%
+      filter(Parc == parc)
+    
+    return(tab_pij2_filtered)
+  }
+  
+  # Créer des variables dynamiques pour chaque valeur de Parc
+  for (parc in parc_values) {
+    # Créer un nom de variable dynamique
+    var_name <- paste0("tab_pij2_filtered_", parc)
+    
+    # Assigner le tableau filtré à la variable dynamique
+    assign(var_name, filter_by_parc(parc))
+  }
+  
+  
+  #------------------------------------------------------------------------
+  # Liste des tableaux d'interaction
+  tableaux_interaction <- list("1088B" = tab_pij2_filtered_1088B, 
+                               "1088C" = tab_pij2_filtered_1088C,
+                               "1435B" = tab_pij2_filtered_1435B,
+                               "1435C" = tab_pij2_filtered_1435C,
+                               "1650B" = tab_pij2_filtered_1650B,
+                               "1650C" = tab_pij2_filtered_1650C,
+                               "1662B" = tab_pij2_filtered_1662B,
+                               "1662C" = tab_pij2_filtered_1662C,
+                               "1868B" = tab_pij2_filtered_1868B,
+                               "1868C" = tab_pij2_filtered_1868C)
+  
+ 
+  # Fonction pour effectuer le bootstrap et calculer la moyenne de l'indice de Pianka
+  bootstrap_matrix <- function(data, n_bootstrap = 1000, sample_size = 20) {
+    # Initialiser un vecteur pour stocker les valeurs de Pianka
+    pianka_values <- numeric(n_bootstrap)
+    
+    for (b in 1:n_bootstrap) {
+      # Rééchantillonnage bootstrap des données
+      bootstrap_data <- data %>%
+        group_by(Isp) %>%
+        sample_n(size = min(sample_size, n()), replace = TRUE) %>%
+        ungroup()
+      
+      # Créer la matrice d'interaction entre les prédateurs et les proies
+      interaction_matrix <- dcast(bootstrap_data, Isp ~ ReadName, value.var = "PijComb", fun.aggregate = mean, fill = 0)
+      
+      # Convertir la matrice en un format adapté à pianka()
+      interaction_matrix_data <- as.matrix(interaction_matrix[, -1])  # Retirer la colonne des noms de prédateurs (Isp)
+      rownames(interaction_matrix_data) <- interaction_matrix$Isp  # Nommer les lignes par les prédateurs
+      
+      # Utiliser la fonction pianka() pour calculer l'indice de Pianka
+      pianka_matrix <- EcoSimR::pianka(interaction_matrix_data)
+      
+      # Calculer la moyenne des indices de Pianka (uniquement la partie inférieure de la matrice)
+      pianka_values[b] <- mean(pianka_matrix)
+    }
+    
+    # Retourner la moyenne des valeurs de Pianka obtenues via le bootstrap
+    return(mean(pianka_values))
+  }
+  
+  
+  
+  # Liste pour stocker les résultats
+  pianka_results <- list()
+  
+  # Boucle sur chaque tableau d'interaction
+  for (nom_tableau in names(tableaux_interaction)) {
+    # Récupérer le tableau actuel
+    tab_pij2_filtered <- tableaux_interaction[[nom_tableau]]
+    
+    # Calculer la moyenne de l'indice de Pianka avec bootstrap
+    mean_pianka <- bootstrap_matrix(tab_pij2_filtered, n_bootstrap = 1000, sample_size = 20)
+    
+    # Stocker le résultat dans la liste avec le nom du tableau d'interaction
+    pianka_results[[nom_tableau]] <- mean_pianka
+  }
+  
+  # Convertir la liste des résultats en tableau (data frame)
+  pianka_df <- data.frame(Parc = names(pianka_results), 
+                          Pianka_index = unlist(pianka_results))
+  
+  # Afficher le tableau final avec les résultats de Pianka
+  print(pianka_df)
+
+
+
+#=== Calcul des indices de diversité de Shannon (prédateurs et proies) par parcelles
+
+  # Compter la fréquence des prédateurs dans chaque parc
+  df_counts_Isp <- tab_pij2_All_species_Seuil_1_percent %>%
+    count(Parc, Isp) %>%
+    group_by(Parc) %>%
+    mutate(Proportion = n / sum(n))
+  
+  # Calculer la diversité de Shannon pour chaque parc
+  Shannon_Isp <- df_counts_Isp %>%
+    group_by(Parc) %>%
+    summarise(Predator_Shannon_Diversity = vegan::diversity(Proportion, index = "shannon"))
+  
+  
+  # Compter la fréquence des proies dans chaque parc
+  df_counts_ReadName <- tab_pij2_All_species_Seuil_1_percent %>%
+    count(Parc, ReadName) %>%
+    group_by(Parc) %>%
+    mutate(Proportion = n / sum(n))
+  
+  # Calculer la diversité de Shannon pour chaque parc
+  Shannon_ReadName <- df_counts_ReadName %>%
+    group_by(Parc) %>%
+    summarise(Prey_Shannon_Diversity = vegan::diversity(Proportion, index = "shannon"))
+  
+  
+#=== Rassemblement des données
+
+#Données de paysage
+
+# Récupérer les valeurs uniques de HSNtot pour chaque Parc
+pHSN <- CR_Paysage[, c("Parc", "HSNtot")] %>%
+  distinct(Parc, HSNtot)
+
+Data_modeles <- pianka_df
+
+# Ajouter la colonne FS
+Data_modeles$FS <- ifelse(
+  substr(Data_modeles$Parc, nchar(Data_modeles$Parc), nchar(Data_modeles$Parc)) == "B",
+  "Bio",
+  "Conv"
+)
+
+Data_modeles <- Data_modeles %>%
+  left_join(Shannon_Isp, by = "Parc")
+    
+Data_modeles <- Data_modeles %>%
+  left_join(Shannon_ReadName, by = "Parc")
+
+Data_modeles <- Data_modeles %>%
+  left_join(pHSN, by = "Parc")
+
+
+#=== Matrice de corrélation des 4 variables explicatrices du modèle
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(Data_modeles[,-c(1,3)])
+
+print(correlation_matrix)
+
+
+# Convertir la matrice de corrélation en data frame
+melted_correlation_matrix <- melt(correlation_matrix)
+
+# Créer le heatmap
+ggplot(melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(x = "Variable", y = "Variable", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#=== Modèles
+  
+# Centrer et réduire les données
+#Data_modeles$Pianka_index_scaled <- scale(Data_modeles$Pianka_index)
+#Data_modeles$Predator_Shannon_Diversity_scaled <- scale(Data_modeles$Predator_Shannon_Diversity)
+#Data_modeles$Prey_Shannon_Diversity_scaled <- scale(Data_modeles$Prey_Shannon_Diversity)
+#Data_modeles$HSNtot_scaled <- scale(Data_modeles$HSNtot)
+
+
+# a)	Pianka ~ Shannon Isp + Shannon ReadName
+    #	Si les deux Shannon ne sont pas significatifs, on passe à la b)
+    # Si un seul Shannon est significatif, on passe à la c)
+    # Si les deux Shannon sont significatifs, on passe à la d)
+
+model_a <- lm(Pianka_index ~ Predator_Shannon_Diversity + Prey_Shannon_Diversity, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_a_summary <- tidy(model_a)
+# Afficher les résultats
+print(model_a_summary)
+
+
+#model_a_scaled <- lm(Pianka_index_scaled ~ Predator_Shannon_Diversity_scaled + Prey_Shannon_Diversity_scaled, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+#model_a_summary_scaled <- tidy(model_a_scaled)
+# Afficher les résultats
+#print(model_a_summary_scaled)
+
+# Prey_Shannon_Diversity est significatif donc c)
+
+# b)	Pianka ~ FS + pHSN
+
+model_b <- lm(Pianka_index ~ FS + HSNtot, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+#model_b_scaled <- lm(Pianka_index_scaled ~ FS + HSNtot_scaled, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+#model_b_summary_scaled <- tidy(model_b_scaled)
+# Afficher les résultats
+#print(model_b_summary_scaled)
+
+# c)	Pianka ~ FS + pHSN + Shannon (Isp ou ReadName)
+
+model_c <- lm(Pianka_index ~ FS + HSNtot + Prey_Shannon_Diversity, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+#model_c_scaled <- lm(Pianka_index_scaled ~ FS + HSNtot_scaled + Prey_Shannon_Diversity_scaled, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+#model_c_summary_scaled <- tidy(model_c_scaled)
+# Afficher les résultats
+#print(model_c_summary_scaled)
+
+# d)	Pianka ~ FS + pHSN + Shannon Isp + Shannon ReadName
+
+model_d <- lm(Pianka_index ~ FS + HSNtot + Predator_Shannon_Diversity + Prey_Shannon_Diversity, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_d_summary <- tidy(model_d)
+# Afficher les résultats
+print(model_d_summary)
+
+#model_d_scaled <- lm(Pianka_index_scaled ~ FS + HSNtot_scaled + Predator_Shannon_Diversity_scaled + Prey_Shannon_Diversity_scaled, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+#model_d_summary_scaled <- tidy(model_d_scaled)
+# Afficher les résultats
+#print(model_d_summary_scaled)
+
+
+#=== Graphiques des relations entre variables
+
+ggplot(data = Data_modeles, aes(x = Prey_Shannon_Diversity, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Prey_Shannon_Diversity", y = "Pianka_index")
+
+ggplot(data = Data_modeles, aes(x = Prey_Shannon_Diversity, y = Pianka_index, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Prey_Shannon_Diversity", y = "Pianka_index")
+
+
+
+ggplot(data = Data_modeles, aes(x = Predator_Shannon_Diversity, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Predator_Shannon_Diversity", y = "Pianka_index")
+
+ggplot(data = Data_modeles, aes(x = Predator_Shannon_Diversity, y = Pianka_index, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Predator_Shannon_Diversity", y = "Pianka_index")
+
+
+
+ggplot(data = Data_modeles, aes(x = HSNtot, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "HSNtot", y = "Pianka_index")
+
+ggplot(data = Data_modeles, aes(x = HSNtot, y = Pianka_index, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "HSNtot", y = "Pianka_index")
+
+
+ggplot(data = Data_modeles, aes(x = FS, y = Pianka_index, fill = FS)) +
+  geom_boxplot() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "HSNtot", y = "Pianka_index")
+
+
+
+library(spaa)
+library(reshape2)
+library(dplyr)
+
+# Fonction pour calculer les chevauchements de niche
+calculate_niche_overlap <- function(interaction_matrix) {
+  # Calculer les chevauchements de niche
+  overlap <- niche.overlap(interaction_matrix, method = "levins")
+
+  # Retourner les moyennes des chevauchements
+  return(c(overlap = mean(overlap, na.rm = TRUE)))
+}
+
+# Fonction pour effectuer le bootstrap et calculer les chevauchements de niche
+bootstrap_matrix <- function(data, n_bootstrap = 1000, sample_size = 20) {
+  # Initialiser des vecteurs pour stocker les valeurs de niche overlap
+  overlap_values <- numeric(n_bootstrap)
+
+  for (b in 1:n_bootstrap) {
+    # Rééchantillonnage bootstrap des données
+    bootstrap_data <- data %>%
+      group_by(Isp) %>%
+      sample_n(size = min(sample_size, n()), replace = TRUE) %>%
+      ungroup()
+    
+    # Créer la matrice d'interaction entre les prédateurs et les proies
+    interaction_matrix <- dcast(bootstrap_data, Isp ~ ReadName, value.var = "PijComb", fun.aggregate = mean, fill = 0)
+    
+    # Convertir la matrice en un format adapté pour l'analyse de chevauchement
+    interaction_matrix_data <- as.matrix(interaction_matrix[, -1])  # Retirer la colonne des noms de prédateurs (Isp)
+    rownames(interaction_matrix_data) <- interaction_matrix$Isp  # Nommer les lignes par les prédateurs
+    
+    # Calculer les chevauchements de niche
+    niche_overlap <- calculate_niche_overlap(interaction_matrix_data)
+    
+    # Stocker les valeurs de niche overlap
+    overlap_values[b] <- niche_overlap["overlap"]
+  }
+  
+  # Retourner les moyennes des valeurs de niche overlap obtenues via le bootstrap
+  return(list(mean_niche_overlap = mean(overlap_values)))
+}
+
+# Liste pour stocker les résultats
+niche_overlap_results <- list()
+
+# Boucle sur chaque tableau d'interaction
+for (nom_tableau in names(tableaux_interaction)) {
+  # Récupérer le tableau actuel
+  tab_pij2_filtered <- tableaux_interaction[[nom_tableau]]
+  
+  # Calculer la moyenne des indices de chevauchement de niche avec bootstrap
+  mean_niche_overlap <- bootstrap_matrix(tab_pij2_filtered, n_bootstrap = 1000, sample_size = 20)
+  
+  # Stocker les résultats dans la liste avec le nom du tableau d'interaction
+  niche_overlap_results[[nom_tableau]] <- mean_niche_overlap
+}
+
+# Convertir la liste des résultats en tableau (data frame)
+niche_overlap_df <- do.call(rbind, lapply(names(niche_overlap_results), function(name) {
+  result <- niche_overlap_results[[name]]
+  data.frame(Parc = name, 
+             Niche_Overlap = result$mean_niche_overlap)
+}))
+
+# Afficher le tableau final avec les résultats de niche overlap
+print(niche_overlap_df)
+
+
+
+# -----
+Data_modeles_1 <- Data_modeles %>%
+  left_join(niche_overlap_df, by = "Parc")
+
+
+#=== Matrice de corrélation des 4 variables explicatrices du modèle
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(Data_modeles_1[,-c(1,3)])
+
+print(correlation_matrix)
+
+
+# Convertir la matrice de corrélation en data frame
+melted_correlation_matrix <- melt(correlation_matrix)
+
+# Créer le heatmap
+ggplot(melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(x = "Variable", y = "Variable", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+#=== Graphiques des relations entre variables
+
+ggplot(data = Data_modeles_1, aes(x = Prey_Shannon_Diversity, y = Niche_Overlap)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Prey_Shannon_Diversity", y = "Niche_Overlap")
+
+
+model_e <- lm(Niche_Overlap ~ FS + HSNtot + Predator_Shannon_Diversity + Prey_Shannon_Diversity, data = Data_modeles_1)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_e_summary <- tidy(model_e)
+# Afficher les résultats
+print(model_e_summary)
+
+model_e <- lm(Niche_Overlap ~ FS + HSNtot + Prey_Shannon_Diversity, data = Data_modeles_1)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_e_summary <- tidy(model_e)
+# Afficher les résultats
+print(model_e_summary)
+
+
+
+# NMDS
+
+# Charger les packages nécessaires
+library(vegan)
+library(ggplot2)
+library(ggrepel)  # Pour éviter la superposition des labels
+
+
+# Vecteur des parcelles
+interaction_df <- tab_pij2_All_species_Seuil_1_percent[,c("Parc", "PijComb", "Isp", "ReadName")]
+
+# Reformater les données en une matrice d'interaction (prédateurs en lignes, proies en colonnes)
+interaction_matrix <- dcast(interaction_df, Isp ~ ReadName, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+
+# Enlever la colonne des prédateurs pour la NMDS
+interaction_matrix_data <- as.matrix(interaction_matrix[,-1])
+
+# Réaliser l'analyse NMDS
+dist_matrix <- vegdist(interaction_matrix_data, method = "bray")
+nmds_result <- metaMDS(dist_matrix, k = 2, trymax = 100)
+
+# Créer un dataframe pour visualiser avec ggplot
+nmds_df <- as.data.frame(nmds_result$points)
+nmds_df$predateur <- interaction_matrix$Isp
+nmds_df$parcelle <- interaction_df$Parc[match(nmds_df$predateur, interaction_df$Isp)]  # Associer les parcelles aux prédateurs
+nmds_df$FS <- substr(nmds_df$parcelle, nchar(nmds_df$parcelle), nchar(nmds_df$parcelle))
+
+# Visualiser les résultats NMDS avec ggplot2
+ggplot(nmds_df, aes(x = MDS1, y = MDS2, color = FS, label = predateur)) +
+  geom_point(size = 4) +
+  geom_text_repel() +
+  stat_ellipse(aes(fill = FS), alpha = 0.2, level = 0.95) +
+  labs(title = "NMDS des Régimes Alimentaires des Prédateurs en Fonction des Parcelles",
+       x = "Dimension 1", y = "Dimension 2") +
+  theme_minimal()
+
+# Visualiser les résultats NMDS avec ggplot2
+ggplot(nmds_df, aes(x = MDS1, y = MDS2, color = parcelle, label = predateur)) +
+  geom_point(size = 4) +
+  geom_text_repel() +
+  stat_ellipse(aes(fill = FS), alpha = 0.2, level = 0.95) +
+  labs(title = "NMDS des Régimes Alimentaires des Prédateurs en Fonction des Parcelles",
+       x = "Dimension 1", y = "Dimension 2") +
+  theme_minimal()
+
+
+# Regrouper par parcelle et prédateur, et sommer les interactions
+df_grouped <- interaction_df %>%
+  group_by(Parc, Isp, ReadName) %>%
+  summarise(PijComb = sum(PijComb)) %>%
+  ungroup()
+
+# Reformater les données en une matrice (prédateurs * proies) pour chaque parcelle
+interaction_matrix <- dcast(df_grouped, Isp + Parc ~ ReadName, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+
+# Séparer les colonnes de parcelles pour les utiliser plus tard
+parcelles <- interaction_matrix$Parc
+interaction_matrix <- as.matrix(interaction_matrix[,-c(1,2)]) # Enlever les colonnes Isp et Parc
+
+# Réaliser l'analyse NMDS
+dist_matrix <- vegdist(interaction_matrix, method = "bray")
+nmds_result <- metaMDS(dist_matrix, k = 2, trymax = 100)
+
+# Créer un dataframe pour visualiser avec ggplot
+nmds_df <- as.data.frame(nmds_result$points)
+nmds_df$predateur <- df_grouped$Isp[match(row.names(nmds_df), df_grouped$Isp)]  # Associer prédateurs
+nmds_df$parcelle <- parcelles  # Associer parcelles
+
+# Visualiser les résultats NMDS avec ggplot2 et ajouter des labels sur les points
+ggplot(nmds_df, aes(x = MDS1, y = MDS2, color = parcelle)) +
+  geom_point(size = 2) +  # Points pour chaque prédateur
+  geom_text_repel(aes(label = predateur), size = 2, max.overlaps = Inf) +  # Labels des prédateurs
+  labs(title = "NMDS des régimes alimentaires des prédateurs en fonction des parcelles",
+       x = "Dimension 1", y = "Dimension 2") +
+  theme_minimal()
+
+
+#########################
+
+# I - Relation Niche.Overlap ~ abondance de certains taxons (pests)
+
+# Liste des mots à conserver
+pests <- c("Acrididae", "Anthomyiidae", "Aphididae", "Chrysomelidae", "Cicadellidae", "Crambidae", "Lygaeidae", "Miridae", "Noctuidae", "Pentatomidae", "Phylloxeridae", "Tephritidae", "Thripidae", "Tortricidae")
+
+# Filtrer les lignes
+interaction_df_pests <- interaction_df %>%
+  filter(str_detect(ReadName, paste(pests, collapse = "|")))
+
+
+# Calculer l'abondance des prédateurs
+Abundance_pests <- interaction_df_pests %>%
+  group_by(Parc, ReadName) %>%
+  summarise(Pest_abundance = n(), .groups = 'drop')
+
+# Calculer l'abondance des prédateurs
+Abundance_pests_parc <- interaction_df_pests %>%
+  group_by(Parc) %>%
+  summarise(Pest_abundance = n(), .groups = 'drop')
+
+
+Data_modeles_pests <- Data_modeles_1[,c("Parc", "Pianka_index", "Niche_Overlap")] %>%
+  left_join(Abundance_pests_parc, by = "Parc")
+
+
+#=== Graphiques des relations entre variables
+
+# Pianka_index
+ggplot(data = Data_modeles_pests, aes(x = Pest_abundance, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Pest_abundance", y = "Pianka_index")
+
+
+model_f <- lm(Pianka_index ~ Pest_abundance, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_f_summary <- tidy(model_f)
+# Afficher les résultats
+print(model_f_summary)
+
+
+# Niche_Overlap
+ggplot(data = Data_modeles_pests, aes(x = Pest_abundance, y = Niche_Overlap)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Pest_abundance", y = "Pianka_index")
+
+
+model_g <- lm(Niche_Overlap ~ Pest_abundance, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_g_summary <- tidy(model_g)
+# Afficher les résultats
+print(model_g_summary)
+
+
+#########################
+
+# II - # Relation Niche.Overlap ~ Régulation ?
+
+
+
+
+#########################
+
+# III - # Relation Niche.Overlap ~ Prey_Shannon expliqué par IFT ?
+
+Data_IFT <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/pratiques_paysages_2015.txt", header = TRUE, sep = "")
+
+Data_IFT <- rename(Data_IFT, Parc = parc)
+
+Data_modeles_pests_IFT <- Data_modeles_pests %>%
+  left_join(Data_IFT, by = "Parc")
+
+Data_modeles_pests_IFT <- Data_modeles_pests_IFT %>%
+  left_join(Data_modeles[,c("Parc", "Prey_Shannon_Diversity")], by = "Parc")
+
+Data_modeles_pests_IFT$IFTTotal <- Data_modeles_pests_IFT$IFTHer + Data_modeles_pests_IFT$IFTIns + Data_modeles_pests_IFT$IFTFon
+
+
+#=== Graphiques des relations entre variables
+
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = IFTTotal)) +
+  geom_point() +  # Points de données
+  geom_smooth(method = "lm", aes(group = 1), col = "blue") +  # Régression linéaire globale
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFTTotal",
+       x = "Prey_Shannon_Diversity",
+       y = "Pianka_index") +
+  theme_minimal() +
+  scale_color_gradient(low = "lightblue", high = "darkblue")  # Gradient de couleur basé sur IFT
+
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, size = IFTTotal)) +
+  geom_point(alpha = 0.6) +  # Taille des points varie avec IFT
+  geom_smooth(method = "lm", col = "blue") +  # Régression linéaire
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFTTotal",
+       x = "Prey_Shannon_Diversity",
+       y = "Pianka_index") +
+  theme_minimal()
+
+
+
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = factor(IFTTotal), size = IFTTotal)) +
+  geom_point() + 
+  geom_smooth(method = "lm", aes(group = IFTTotal), se = FALSE) +  # Régression linéaire par groupe IFTTotal
+  geom_smooth(method = "lm", col = "red") +
+  geom_text(aes(label = Parc), vjust = -1, hjust = 0.5) +  # Ajouter les labels Parc au-dessus des points
+  scale_size_continuous(range = c(2, 10)) +  # Ajuster l'échelle de taille des points
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity par IFTTotal",
+       x = "Prey_Shannon_Diversity",
+       y = "Pianka_index") +
+  theme_minimal()
+
+
+########
+
+model <- lm(Pianka_index ~ Prey_Shannon_Diversity + IFTTotal, data = Data_modeles_pests_IFT)
+
+# Résumé du modèle
+summary(model)
+
+
+
+######################
+
+# Réseaux trophiques par parcelle
+# Extraire les valeurs uniques de la colonne 'Parc'
+parc_values <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Générer une palette de couleurs, par exemple avec RColorBrewer (ou d'autres)
+colors <- grDevices::rainbow(length(parc_values))  # Utiliser un ensemble de couleurs distinctes
+
+# Initialiser une liste pour stocker les dataframes de métriques
+list_métriques <- list()
+
+# Boucle pour créer un tableau, une matrice et un graphique pour chaque Parc
+for (i in seq_along(parc_values)) {
+  
+  # Filtrer les données pour un parc spécifique
+  parc <- parc_values[i]
+  subset_data <- tab_pij2_All_species_Seuil_1_percent[tab_pij2_All_species_Seuil_1_percent$Parc == parc, ]
+  
+  # Transformer le data frame en matrice d'interaction pour ce parc
+  interaction_matrix_All_species <- reshape2::dcast(subset_data, ReadName ~ Isp, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+  
+  # Mettre les noms de lignes et de colonnes
+  rownames(interaction_matrix_All_species) <- interaction_matrix_All_species[, 1]
+  interaction_matrix_All_species <- as.matrix(interaction_matrix_All_species[, -1])
+  
+  # Trier les lignes par ordre alphabétique des noms de lignes
+  interaction_matrix_All_species <- interaction_matrix_All_species[order(rownames(interaction_matrix_All_species)), ]
+  
+  # Calculer les métriques de réseau
+  métriques <- as.data.frame(networklevel(interaction_matrix_All_species))
+  # Stocker les métriques dans la liste
+  list_métriques[[parc]] <- métriques
+  
+  # Paramètres graphiques pour réduire la taille du graphique
+  op <- par(mar = c(0.1, 2, 0.1, 2) + 0.1, cex = 0.8)
+  
+  # Générer le graphique plotweb avec des liens plus visibles (en utilisant une couleur différente pour chaque parc)
+  plotweb(interaction_matrix_All_species, method = "normal", 
+          low.lablength = 30, arrow = "down", high.lablength = 30,
+          text.rot = 90, col.low = "grey", ybig = 1, 
+          y.width.high = 0.03, y.width.low = 0.03, 
+          bor.col.interaction = "black",  # Bordure autour des interactions
+          col.interaction = colors[i])  # Couleur des liens pour chaque parc spécifique
+  
+  # Ajouter un titre spécifique pour chaque parc
+  title(main = paste("Réseau trophique pour Parc", parc))
+  
+  # Réinitialiser les paramètres graphiques
+  par(op)
+}
+
+# Combiner tous les dataframes de métriques en un seul dataframe si souhaité
+final_métriques <- do.call(cbind, list_métriques)
+
+# Renommer les colonnes avec le nom de la parcelle suivi d'un underscore
+colnames(final_métriques) <- paste0(parc_values, "_", colnames(final_métriques))
+final_métriques$métriques <- rownames(final_métriques)
+
+writexl::write_xlsx(final_métriques, "final_métriques_par_parcelles.xlsx")
