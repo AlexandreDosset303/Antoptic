@@ -486,7 +486,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                     
                     # Calculer la taille de l'échantillon commune
                     raremax <- min(rowSums(rarefaction_data))
-                    
+                    # raremax = 82
                     # Calculer la richesse raréfiée
                     rarefied <- rarefy(rarefaction_data, sample = raremax)
                     
@@ -1775,6 +1775,8 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
   
 
 # XII - Fonction pour calculer l'indice de chevauchement de Pianka ===============
+# https://rdrr.io/cran/EcoSimR/man/pianka.html
+  
   pianka_index <- function(matrix) {
     species <- nrow(matrix)
     pianka_matrix <- matrix(NA, nrow = species, ncol = species)
@@ -2175,83 +2177,121 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
   correlation <- cor(tab_infest_inter$Ococh, tab_infest_inter$Frequence_interactions, use = "complete.obs")
   print(correlation)
   
-  # Comment tout comparer en même temps ?
   
-  model <- lm(Ococh ~ culture + AC + AB + HSNtot + foret + prairie + urb + ABconv + Zarrac + Vaband + eau, data = tab_infest_inter)
-  summary(model)
   
-  tab_infest_inter <- tab_infest_inter %>%
-    filter(!is.na(Ococh))
-           
-  pca <- prcomp(tab_infest_inter[, c("Ococh","culture", "AC", "AB", "HSNtot", "foret","prairie", "urb", "ABconv", "Zarrac", "Vaband", "eau")], scale. = TRUE)
-  summary(pca)
-  biplot(pca)
+  
+  
+  
+  #Interprétation Finale
+  #Performance Générale : Le modèle semble avoir une erreur relativement élevée (RMSE) et une capacité d'explication de la variance très faible (Rsquared). Ces indicateurs suggèrent que le modèle n'explique pas bien les données.
+  #Stabilité : Les faibles écarts types pour RMSE, Rsquared, et MAE montrent que la performance du modèle est relativement stable à travers les différents folds, bien que la performance moyenne ne soit pas très bonne.
+  
+  # Chercher si la diversité des régimes alimentaires des prédateurs (?) est liée à une composition différente ou une disponibilité de proies   
+  # Dans un paysage en fonction de %conv, %bio et %HSN  
+  
+  # Comment décorréler la composition du paysage avec la composition de la communauté de prédateurs
+  
+  
+  ###################################
+  # Antoptic 20-09-2024
+  ###################################
+  
+  # Remarque 4 - ACP (IFT, Paysage, Surfaces travaillées => intensité d'usage du sol)
+  # Indice qui regroupe Pesticides, couvert végétal et Forêt avec 0 et 1 pour chaque valeur, donc somme allant de 0 à 3.
+  
+  
+  Data_IFT <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/pratiques_paysages_2015.txt", header = TRUE, sep = "")
+  
+  Data_IFT <- rename(Data_IFT, Parc = parc)
+  Data_IFT$IFT_Ins_Fon <- Data_IFT$IFTIns + Data_IFT$IFTFon
+  
+  # Fusionner les deux tables par la colonne 'Parc'
+  data_merged <- merge(tab_pij2_All_species_Seuil_1_percent, CR_Paysage, by = "Parc")
+  data_ACP <- merge(data_merged[, c("Parc", "FS", "AC", "AB", "HSNtot")], 
+                       Data_IFT[, c("Parc", "IFTHer", "IFTIns", "IFTFon", "IFT_Ins_Fon", "surf", "Int_ti")], by = c("Parc"))
+  
+  # Sélection des colonnes de composition du paysage pour l'ACP
+  paysage_vars <- data_ACP %>% select(AC, AB, HSNtot, IFTHer, IFTIns, IFTFon, IFT_Ins_Fon, surf, Int_ti)
+  
+  # Effectuer l'ACP
+  pca_paysage <- prcomp(paysage_vars, center = TRUE,scale. = TRUE)
+  
+  # Valeurs propres (variance expliquée par chaque composante)
+  pca_paysage$sdev^2
 
-
-  # Séparer les données en deux : abondances d'espèces et variables environnementales
-  abondances <- tab_infest_inter[, c("Parc", "Ococh", "Oerin", "Obrot", "Ocica", "Omild", "Ophyl", "Otord")]
-  abondances <- na.omit(abondances)
-  abondances_clean <- subset(abondances, select=-c(Parc))
-
-  #environnement <- tab_infest_inter[, c("Parc", "culture", "AC", "AB", "HSNtot", "foret","prairie", "urb", "ABconv", "Zarrac", "Vaband", "eau")]  
-  environnement <- tab_infest_inter[, c("Parc", "culture", "AC", "AB", "HSNtot", "urb", "ABconv", "Vaband", "eau")]  
-  environnement <- na.omit(environnement)
-  environnement_clean <- subset(environnement, select=-c(Parc))
-
-  tab_infest_inter_clean <- cbind(abondances_clean, environnement_clean)
-
-  pca_resultat <- prcomp(tab_infest_inter_clean, center = TRUE, scale. = TRUE)
-  biplot(pca_resultat, scale = 0)
+  # Contributions des variables aux composantes principales
+  pca_paysage$rotation
   
-  summary(pca_resultat)
+  # Afficher un résumé des résultats de l'ACP
+  summary(pca_paysage)
   
+  # Extraire les scores des composantes principales
+  pca_scores <- pca_paysage$x
   
-  tab_infest_inter_clean_scaled <- scale(tab_infest_inter_clean)
-  data.pca <- princomp(tab_infest_inter_clean_scaled)
-  summary(data.pca)
-  
-  data.pca$loadings[, 1:2]
-  
-  #-------------
   library(FactoMineR)
   library(factoextra)
-  library(ggplot2)
+
+  # Graphique des individus
+  fviz_pca_ind(pca_paysage)
   
-  fviz_eig(data.pca, addlabels = TRUE)
+  # Graphique des variables
+  fviz_pca_var(pca_paysage)
+ 
+  # Biplot (individus + variables)
+  fviz_pca_biplot(pca_paysage)
+
   
-  fviz_pca_var(data.pca, col.var = "black", repel = TRUE)
+  fviz_eig(pca_paysage, addlabels = TRUE)
+  
+  fviz_pca_var(pca_paysage, col.var = "black", repel = TRUE)
   # All the variables that are grouped together are positively correlated to each other ().
   # The higher the distance between the variable and the origin, the better represented that variable is.
   # Variables that are negatively correlated are displayed to the opposite sides of the biplot’s origin.
   
   
-  fviz_cos2(data.pca, choice = "var", axes = 1:2)
+  fviz_cos2(pca_paysage, choice = "var", axes = 1:2)
   
   
-  fviz_pca_var(data.pca, col.var = "cos2",
+  fviz_pca_var(pca_paysage, col.var = "cos2",
                gradient.cols = c("black", "orange", "green"),
                repel = TRUE)
   
   # https://www.datacamp.com/tutorial/pca-analysis-r
 
+  library(ggrepel)
   
   # Créer le biplot avec ellipses pour 'cult'
-  p <- fviz_pca_biplot(data.pca,
-                       habillage = tab_infest_inter$Parc,  # Colorer les points selon 'cult'
-                       addEllipses = TRUE                  # Ajouter des ellipses autour des groupes
+  p <- fviz_pca_biplot(pca_paysage,
+                       habillage = data_ACP$Parc,  # Colorer les points selon 'cult'
+                       addEllipses = TRUE # Ajouter des ellipses autour des groupes
+  )
+  
+  p
+  
+  
+  # Ajouter les étiquettes basées sur 'Parc'
+  p + geom_text(aes(label = data_ACP$Parc), 
+                vjust = -0.5,    # Ajuster la position verticale des étiquettes
+                hjust = 1,       # Ajuster la position horizontale des étiquettes
+                size = 3,        # Taille des étiquettes
+                color = "black") # Couleur des étiquettes
+
+  
+  # Créer le biplot avec ellipses pour 'cult'
+  p <- fviz_pca_biplot(pca_paysage,
+                       habillage = data_ACP$FS,  # Colorer les points selon 'cult'
+                       addEllipses = TRUE # Ajouter des ellipses autour des groupes
   )
   
   p
   
   # Ajouter les étiquettes basées sur 'Parc'
-  p + geom_text(aes(label = tab_infest_inter$Parc), 
+  p + geom_text(aes(label = data_ACP$Parc), 
                 vjust = -0.5,    # Ajuster la position verticale des étiquettes
                 hjust = 1,       # Ajuster la position horizontale des étiquettes
                 size = 3,        # Taille des étiquettes
                 color = "black") # Couleur des étiquettes
   
-
-
   
   
 ### Boucle sur les réseaux trophiques pour chaque prédateur ###
@@ -2536,58 +2576,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
          x = "Modèle",
          y = "Erreur Quadratique Moyenne (RMSE)") +
     theme_minimal()
-  
-  #Interprétation Finale
-  #Performance Générale : Le modèle semble avoir une erreur relativement élevée (RMSE) et une capacité d'explication de la variance très faible (Rsquared). Ces indicateurs suggèrent que le modèle n'explique pas bien les données.
-  #Stabilité : Les faibles écarts types pour RMSE, Rsquared, et MAE montrent que la performance du modèle est relativement stable à travers les différents folds, bien que la performance moyenne ne soit pas très bonne.
 
- # Chercher si la diversité des régimes alimentaires des prédateurs (?) est liée à une composition différente ou une disponibilité de proies   
-        # Dans un paysage en fonction de %conv, %bio et %HSN  
-  
- # Comment décorréler la composition du paysage avec la composition de la communauté de prédateurs
-  
-  # Fusionner les deux tables par la colonne 'Parc'
-  data_merged <- merge(Test, CR_Paysage, by = "Parc")
-  
-  # Sélection des colonnes de composition du paysage pour l'ACP
-  paysage_vars <- data_merged %>% select(PijComb, NbInteractions, Ococh, Oerin, Obrot, Omild, Ophyl, Otord, culture, AC, AB, HSNtot, foret, prairie, urb, eau)
-
-  # Effectuer l'ACP
-  pca_paysage <- prcomp(paysage_vars, scale. = TRUE)
-  
-  # Afficher un résumé des résultats de l'ACP
-  summary(pca_paysage)
-  
-  # Extraire les scores des composantes principales
-  pca_scores <- pca_paysage$x
-  
-  # Ajouter les scores au tableau fusionné
-  data_merged <- cbind(data_merged, pca_scores)
-  
-  
-  # Charger le package lme4 pour les modèles linéaires mixtes
-  library(lme4)
-  
-  # Modèle linéaire mixte avec la diversité des prédateurs comme variable réponse
-  # et les scores PCA comme variables explicatives
-  lmm <- lmer(NbInteractions ~ PC1 + PC2 + PC3 + (1 | Isp), data = data_merged)
-  
-  # Résumé du modèle
-  summary(lmm)
-  
-  # Test de l'ANOVA pour le modèle
-  anova(lmm)
-  
-  # Charger ggplot2 pour la visualisation
-  library(ggplot2)
-  
-  # Visualiser les scores de l'ACP
-  ggplot(data_merged, aes(x = PC1, y = NbInteractions, color = Isp)) +
-    geom_point() +
-    theme_minimal() +
-    labs(title = "Relation entre la première composante principale (PC1) et les interactions des prédateurs")
-  
-  
   
   #  --- Calcul de la diversité de proies pour chaque prédateur par parcelle --------  #
 library(vegan)
@@ -3112,7 +3101,103 @@ library(RColorBrewer)
   print(pianka_df)
 
 
-
+#============ Pianka juste pour Cica, Phyl et Tort
+  
+  # Filtrer les lignes où ReadName contient "Cica", "Phyl" ou "Tort"
+  tab_pij2_All_species_Seuil_1_percent_preys <- tab_pij2_All_species_Seuil_1_percent %>%
+    filter(grepl("Cica|Phyl|Tort", ReadName))
+  
+  
+  # Obtenir toutes les valeurs uniques de la colonne Parc
+  parc_values <- unique(tab_pij2_All_species_Seuil_1_percent_preys$Parc)
+  
+  
+  # Fonction pour filtrer la table en fonction du parc
+  filter_by_parc <- function(parc) {
+    tab_pij2_filtered <- tab_pij2_All_species_Seuil_1_percent_preys %>%
+      filter(Parc == parc)
+    
+    return(tab_pij2_filtered)
+  }
+  
+  # Créer des variables dynamiques pour chaque valeur de Parc
+  for (parc in parc_values) {
+    # Créer un nom de variable dynamique
+    var_name <- paste0("tab_pij2_filtered_", parc)
+    
+    # Assigner le tableau filtré à la variable dynamique
+    assign(var_name, filter_by_parc(parc))
+  }
+  
+  
+  # Liste des tableaux d'interaction
+  tableaux_interaction <- list("1088B" = tab_pij2_filtered_1088B, 
+                               "1088C" = tab_pij2_filtered_1088C,
+                               "1435B" = tab_pij2_filtered_1435B,
+                               "1435C" = tab_pij2_filtered_1435C,
+                               "1650B" = tab_pij2_filtered_1650B,
+                               "1650C" = tab_pij2_filtered_1650C,
+                               "1662B" = tab_pij2_filtered_1662B,
+                               "1662C" = tab_pij2_filtered_1662C,
+                               "1868B" = tab_pij2_filtered_1868B,
+                               "1868C" = tab_pij2_filtered_1868C)
+  
+  
+  # Fonction pour effectuer le bootstrap et calculer la moyenne de l'indice de Pianka
+  bootstrap_matrix <- function(data, n_bootstrap = 1000, sample_size = 20) {
+    # Initialiser un vecteur pour stocker les valeurs de Pianka
+    pianka_values <- numeric(n_bootstrap)
+    
+    for (b in 1:n_bootstrap) {
+      # Rééchantillonnage bootstrap des données
+      bootstrap_data <- data %>%
+        group_by(Isp) %>%
+        sample_n(size = min(sample_size, n()), replace = TRUE) %>%
+        ungroup()
+      
+      # Créer la matrice d'interaction entre les prédateurs et les proies
+      interaction_matrix <- dcast(bootstrap_data, Isp ~ ReadName, value.var = "PijComb", fun.aggregate = mean, fill = 0)
+      
+      # Convertir la matrice en un format adapté à pianka()
+      interaction_matrix_data <- as.matrix(interaction_matrix[, -1])  # Retirer la colonne des noms de prédateurs (Isp)
+      rownames(interaction_matrix_data) <- interaction_matrix$Isp  # Nommer les lignes par les prédateurs
+      
+      # Utiliser la fonction pianka() pour calculer l'indice de Pianka
+      pianka_matrix <- EcoSimR::pianka(interaction_matrix_data)
+      
+      # Calculer la moyenne des indices de Pianka (uniquement la partie inférieure de la matrice)
+      pianka_values[b] <- mean(pianka_matrix)
+    }
+    
+    # Retourner la moyenne des valeurs de Pianka obtenues via le bootstrap
+    return(mean(pianka_values))
+  }
+  
+  
+  
+  # Liste pour stocker les résultats
+  pianka_results <- list()
+  
+  # Boucle sur chaque tableau d'interaction
+  for (nom_tableau in names(tableaux_interaction)) {
+    # Récupérer le tableau actuel
+    tab_pij2_filtered <- tableaux_interaction[[nom_tableau]]
+    
+    # Calculer la moyenne de l'indice de Pianka avec bootstrap
+    mean_pianka <- bootstrap_matrix(tab_pij2_filtered, n_bootstrap = 1000, sample_size = 20)
+    
+    # Stocker le résultat dans la liste avec le nom du tableau d'interaction
+    pianka_results[[nom_tableau]] <- mean_pianka
+  }
+  
+  # Convertir la liste des résultats en tableau (data frame)
+  pianka_df_preys <- data.frame(Parc = names(pianka_results), 
+                                Pianka_index_preys = unlist(pianka_results))
+  
+  # Afficher le tableau final avec les résultats de Pianka
+  print(pianka_df_preys)
+  
+  
 #=== Calcul des indices de diversité de Shannon (prédateurs et proies) par parcelles
 
   # Compter la fréquence des prédateurs dans chaque parc
@@ -3499,59 +3584,121 @@ ggplot(nmds_df, aes(x = MDS1, y = MDS2, color = parcelle)) +
 
 #########################
 
+###################################
+# Antoptic 20-09-2024
+###################################
+
+# Remarque 2 - Pour pest_abundance => il faut le niveau d'infestation
+# et faire 3 modèles : mod1:Fcica, mod2:Fphyll et mod3:Ftord
+
+
 # I - Relation Niche.Overlap ~ abondance de certains taxons (pests)
 
-# Liste des mots à conserver
-pests <- c("Acrididae", "Anthomyiidae", "Aphididae", "Chrysomelidae", "Cicadellidae", "Crambidae", "Lygaeidae", "Miridae", "Noctuidae", "Pentatomidae", "Phylloxeridae", "Tephritidae", "Thripidae", "Tortricidae")
+Pest_abundance <- CR_Paysage[,c("Parc", "Fcica", "Fphyl", "Ftord")]
 
-# Filtrer les lignes
-interaction_df_pests <- interaction_df %>%
-  filter(str_detect(ReadName, paste(pests, collapse = "|")))
-
-
-# Calculer l'abondance des prédateurs
-Abundance_pests <- interaction_df_pests %>%
-  group_by(Parc, ReadName) %>%
-  summarise(Pest_abundance = n(), .groups = 'drop')
-
-# Calculer l'abondance des prédateurs
-Abundance_pests_parc <- interaction_df_pests %>%
-  group_by(Parc) %>%
-  summarise(Pest_abundance = n(), .groups = 'drop')
+Pest_abundance <- Pest_abundance %>%
+  dplyr::group_by(Parc) %>%
+  dplyr::summarise(across(c(Fcica, Fphyl, Ftord), ~ mean(.x, na.rm = TRUE)))
 
 
 Data_modeles_pests <- Data_modeles_1[,c("Parc", "Pianka_index", "Niche_Overlap")] %>%
-  left_join(Abundance_pests_parc, by = "Parc")
+  left_join(Pest_abundance, by = "Parc")
 
 
-#=== Graphiques des relations entre variables
+#=== Graphiques des relations entre variables avec Pianka_index
 
+# mod1:Fcica
 # Pianka_index
-ggplot(data = Data_modeles_pests, aes(x = Pest_abundance, y = Pianka_index)) +
+ggplot(data = Data_modeles_pests, aes(x = Fcica, y = Pianka_index)) +
   geom_point() +
   geom_smooth(method = "lm", col = "red") +
-  labs(title = "Graphique de corrélation avec régression linéaire", x = "Pest_abundance", y = "Pianka_index")
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Fcica", y = "Pianka_index")
 
 
-model_f <- lm(Pianka_index ~ Pest_abundance, data = Data_modeles_pests)
+model_f_cica <- lm(Pianka_index ~ Fcica, data = Data_modeles_pests)
 # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
-model_f_summary <- tidy(model_f)
+model_f_cica_summary <- tidy(model_f_cica)
 # Afficher les résultats
-print(model_f_summary)
+print(model_f_cica_summary)
 
 
+# mod2:Fphyl
+# Pianka_index
+ggplot(data = Data_modeles_pests, aes(x = Fphyl, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Fphyl", y = "Pianka_index")
+
+
+model_f_phyl <- lm(Pianka_index ~ Fphyl, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_f_phyl_summary <- tidy(model_f_phyl)
+# Afficher les résultats
+print(model_f_phyl_summary)
+
+
+# mod3:Ftord
+# Pianka_index
+ggplot(data = Data_modeles_pests, aes(x = Ftord, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Ftord", y = "Pianka_index")
+
+
+model_f_tord <- lm(Pianka_index ~ Ftord, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_f_tord_summary <- tidy(model_f_tord)
+# Afficher les résultats
+print(model_f_tord_summary)
+
+
+
+#=== Graphiques des relations entre variables avec Niche_Overlap
+
+# mod1:Fcica
 # Niche_Overlap
-ggplot(data = Data_modeles_pests, aes(x = Pest_abundance, y = Niche_Overlap)) +
+ggplot(data = Data_modeles_pests, aes(x = Fcica, y = Niche_Overlap)) +
   geom_point() +
   geom_smooth(method = "lm", col = "red") +
-  labs(title = "Graphique de corrélation avec régression linéaire", x = "Pest_abundance", y = "Pianka_index")
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Fcica", y = "Niche_Overlap")
 
 
-model_g <- lm(Niche_Overlap ~ Pest_abundance, data = Data_modeles_pests)
+model_g_cica <- lm(Niche_Overlap ~ Fcica, data = Data_modeles_pests)
 # Obtenir un résumé du modèle et ajouter l'espèce aux résultats
-model_g_summary <- tidy(model_g)
+model_g_cica_summary <- tidy(model_g_cica)
 # Afficher les résultats
-print(model_g_summary)
+print(model_g_cica_summary)
+
+
+# mod2:Fphyl
+# Niche_Overlap
+ggplot(data = Data_modeles_pests, aes(x = Fphyl, y = Niche_Overlap)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Fphyl", y = "Niche_Overlap")
+
+
+model_g_phyl <- lm(Niche_Overlap ~ Fphyl, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_g_phyl_summary <- tidy(model_g_phyl)
+# Afficher les résultats
+print(model_g_phyl_summary)
+
+
+# mod3:Ftord
+# Niche_Overlap
+ggplot(data = Data_modeles_pests, aes(x = Ftord, y = Niche_Overlap)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Ftord", y = "Niche_Overlap")
+
+
+model_g_tord <- lm(Niche_Overlap ~ Ftord, data = Data_modeles_pests)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_g_tord_summary <- tidy(model_g_tord)
+# Afficher les résultats
+print(model_g_tord_summary)
+
 
 
 #########################
@@ -3565,47 +3712,43 @@ print(model_g_summary)
 
 # III - # Relation Niche.Overlap ~ Prey_Shannon expliqué par IFT ?
 
-Data_IFT <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/pratiques_paysages_2015.txt", header = TRUE, sep = "")
-
-Data_IFT <- rename(Data_IFT, Parc = parc)
-
 Data_modeles_pests_IFT <- Data_modeles_pests %>%
   left_join(Data_IFT, by = "Parc")
 
 Data_modeles_pests_IFT <- Data_modeles_pests_IFT %>%
   left_join(Data_modeles[,c("Parc", "Prey_Shannon_Diversity")], by = "Parc")
 
-Data_modeles_pests_IFT$IFTTotal <- Data_modeles_pests_IFT$IFTHer + Data_modeles_pests_IFT$IFTIns + Data_modeles_pests_IFT$IFTFon
+Data_modeles_pests_IFT$IFT_Ins_Fon <- Data_modeles_pests_IFT$IFTIns + Data_modeles_pests_IFT$IFTFon
 
 
 #=== Graphiques des relations entre variables
 
-ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = IFTTotal)) +
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = IFT_Ins_Fon)) +
   geom_point() +  # Points de données
   geom_smooth(method = "lm", aes(group = 1), col = "blue") +  # Régression linéaire globale
-  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFTTotal",
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFT_Ins_Fon",
        x = "Prey_Shannon_Diversity",
        y = "Pianka_index") +
   theme_minimal() +
   scale_color_gradient(low = "lightblue", high = "darkblue")  # Gradient de couleur basé sur IFT
 
-ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, size = IFTTotal)) +
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, size = IFT_Ins_Fon)) +
   geom_point(alpha = 0.6) +  # Taille des points varie avec IFT
   geom_smooth(method = "lm", col = "blue") +  # Régression linéaire
-  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFTTotal",
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity avec IFT_Ins_Fon",
        x = "Prey_Shannon_Diversity",
        y = "Pianka_index") +
   theme_minimal()
 
 
 
-ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = factor(IFTTotal), size = IFTTotal)) +
+ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index, color = factor(IFT_Ins_Fon), size = IFT_Ins_Fon)) +
   geom_point() + 
-  geom_smooth(method = "lm", aes(group = IFTTotal), se = FALSE) +  # Régression linéaire par groupe IFTTotal
+  geom_smooth(method = "lm", aes(group = IFT_Ins_Fon), se = FALSE) +  # Régression linéaire par groupe IFT_Ins_Fon
   geom_smooth(method = "lm", col = "red") +
   geom_text(aes(label = Parc), vjust = -1, hjust = 0.5) +  # Ajouter les labels Parc au-dessus des points
   scale_size_continuous(range = c(2, 10)) +  # Ajuster l'échelle de taille des points
-  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity par IFTTotal",
+  labs(title = "Relation entre Pianka_index et Prey_Shannon_Diversity par IFT_Ins_Fon",
        x = "Prey_Shannon_Diversity",
        y = "Pianka_index") +
   theme_minimal()
@@ -3613,7 +3756,7 @@ ggplot(Data_modeles_pests_IFT, aes(x = Prey_Shannon_Diversity, y = Pianka_index,
 
 ########
 
-model <- lm(Pianka_index ~ Prey_Shannon_Diversity + IFTTotal, data = Data_modeles_pests_IFT)
+model <- lm(Pianka_index ~ Prey_Shannon_Diversity + IFT_Ins_Fon, data = Data_modeles_pests_IFT)
 
 # Résumé du modèle
 summary(model)
@@ -3680,3 +3823,876 @@ colnames(final_métriques) <- paste0(parc_values, "_", colnames(final_métriques
 final_métriques$métriques <- rownames(final_métriques)
 
 writexl::write_xlsx(final_métriques, "final_métriques_par_parcelles.xlsx")
+
+
+###################################
+# Antoptic 20-09-2024
+###################################
+
+# Remarque 1 - Recalculer les indicateurs per capita, Shannon raréfié en fonction du nb de prédateurs capturés (voir discussion 09-2024)
+library(iNEXT)
+
+# Créer un tableau de contingence des prédicteurs (Isp) par site (Parc)
+table_data <- table(tab_pij2_All_species_Seuil_1_percent$ReadName, tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Convertir le tableau en data.frame
+abundance_data <- as.data.frame.matrix(table_data)
+
+Plot_inext <- iNEXT::iNEXT(abundance_data, q = 1, datatype = "abundance")
+
+ggiNEXT(Plot_inext, type=1, se=FALSE, grey=FALSE)
+
+
+
+# Créer un tableau de contingence des prédicteurs (Isp) par site (Parc)
+table_data <- table(tab_pij2_All_species_Seuil_1_percent$Isp, tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Convertir le tableau en data.frame
+abundance_data <- as.data.frame.matrix(table_data)
+
+Plot_inext <- iNEXT::iNEXT(abundance_data, q = 1, datatype = "abundance")
+
+ggiNEXT(Plot_inext, type=1, se=FALSE, grey=FALSE)
+
+
+
+
+# Créer un tableau de contingence des prédicteurs (Isp) par site (Parc)
+table_data_Isp <- table(tab_pij2_All_species_Seuil_1_percent$Isp, tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Convertir le tableau en data.frame
+abundance_data_Isp <- as.data.frame.matrix(table_data_Isp)
+
+shannon_estimate_Isp <- iNEXT::ChaoShannon(abundance_data_Isp, datatype = "abundance")
+shannon_estimate_Isp$Parc <- rownames(shannon_estimate_Isp)
+shannon_estimate_Isp <- shannon_estimate_Isp %>%
+  rename(shannon_rarefied_Isp = Estimator)
+
+
+# Créer un tableau de contingence des prédicteurs (Isp) par site (Parc)
+table_data_ReadName <- table(tab_pij2_All_species_Seuil_1_percent$ReadName, tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Convertir le tableau en data.frame
+abundance_data_ReadName <- as.data.frame.matrix(table_data_ReadName)
+
+shannon_estimate_ReadName <- iNEXT::ChaoShannon(abundance_data_ReadName, datatype = "abundance")
+shannon_estimate_ReadName$Parc <- rownames(shannon_estimate_ReadName)
+shannon_estimate_ReadName <- shannon_estimate_ReadName %>%
+  rename(shannon_rarefied_ReadName = Estimator)
+
+
+#=== Rassemblement des données
+
+#Données de paysage
+
+Data_modeles <- pianka_df
+
+# Ajouter la colonne FS
+Data_modeles$FS <- ifelse(
+  substr(Data_modeles$Parc, nchar(Data_modeles$Parc), nchar(Data_modeles$Parc)) == "B",
+  "Bio",
+  "Conv"
+)
+
+Data_modeles <- Data_modeles %>%
+  left_join(shannon_estimate_Isp[,c("Parc", "shannon_rarefied_Isp")], by = "Parc")
+
+Data_modeles <- Data_modeles %>%
+  left_join(shannon_estimate_ReadName[,c("Parc", "shannon_rarefied_ReadName")], by = "Parc")
+
+Data_modeles <- Data_modeles %>%
+  left_join(pHSN, by = "Parc")
+
+
+#=== Matrice de corrélation des 4 variables explicatrices du modèle
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(Data_modeles[,-c(1,3)])
+
+print(correlation_matrix)
+
+
+# Convertir la matrice de corrélation en data frame
+melted_correlation_matrix <- melt(correlation_matrix)
+
+# Créer le heatmap
+ggplot(melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(x = "Variable", y = "Variable", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#=== Modèles
+
+# a)	Pianka ~ Shannon Isp + Shannon ReadName
+#	Si les deux Shannon ne sont pas significatifs, on passe à la b)
+# Si un seul Shannon est significatif, on passe à la c)
+# Si les deux Shannon sont significatifs, on passe à la d)
+
+model_a <- lm(Pianka_index ~ shannon_rarefied_Isp + shannon_rarefied_ReadName, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_a_summary <- tidy(model_a)
+# Afficher les résultats
+print(model_a_summary)
+
+
+# Prey_Shannon_Diversity est significatif donc c)
+
+# c)	Pianka ~ shannon_rarefied_ReadName + FS + pHSN
+
+model_c <- lm(Pianka_index ~ shannon_rarefied_ReadName + FS + HSNtot, data = Data_modeles)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+#=== Graphiques des relations entre variables
+
+ggplot(data = Data_modeles, aes(x = shannon_rarefied_ReadName, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "shannon_rarefied_ReadName", y = "Pianka_index")
+
+ggplot(data = Data_modeles, aes(x = shannon_rarefied_ReadName, y = Pianka_index, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "shannon_rarefied_ReadName", y = "Pianka_index")
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles, aes(x = shannon_rarefied_ReadName, y = Pianka_index)) +
+  geom_point(aes(color = FS, size = HSNtot)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Shannon rarefié (ReadName)",
+       y = "Pianka Index")
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles, aes(x = shannon_rarefied_ReadName, y = Pianka_index, fill = FS)) +
+  geom_point(aes(color = FS, size = HSNtot)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Shannon rarefié (ReadName)",
+       y = "Pianka Index")
+
+
+
+ggplot(data = Data_modeles, aes(x = shannon_rarefied_Isp, y = Pianka_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "shannon_rarefied_Isp", y = "Pianka_index")
+
+ggplot(data = Data_modeles, aes(x = shannon_rarefied_Isp, y = Pianka_index, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "shannon_rarefied_Isp", y = "Pianka_index")
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles, aes(x = shannon_rarefied_Isp, y = Pianka_index)) +
+  geom_point(aes(color = FS, size = HSNtot)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Shannon rarefié (Isp)",
+       y = "Pianka Index")
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles, aes(x = shannon_rarefied_Isp, y = Pianka_index, fill = FS)) +
+  geom_point(aes(color = FS, size = HSNtot)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Shannon rarefié (Isp)",
+       y = "Pianka Index")
+
+
+
+###################################
+# Antoptic 20-09-2024
+###################################
+
+# Remarque 4 : indice composite (entre 0 et 3) : IFT_Ins_Fon (entre 0 et 1), Int_ti(entre 0 et 1), HSNtot (entre 0 et 1)
+
+# custom function to implement min max scaling
+minMax <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+#normalise data using custom function
+Data_composite <- data_ACP[,-2]
+
+Data_composite$HSNtot_bin <- minMax(Data_composite$HSNtot)
+Data_composite$HSNtot_bin_inv <- 1 - minMax(Data_composite$HSNtot)
+Data_composite$IFT_Ins_Fon_bin <- minMax(Data_composite$IFT_Ins_Fon)
+Data_composite$Int_ti_bin <- minMax(Data_composite$Int_ti)
+
+Data_composite$Composite <- Data_composite$HSNtot_bin_inv + Data_composite$IFT_Ins_Fon_bin + Data_composite$Int_ti_bin
+
+Data_composite_2 <- Data_composite %>%
+  dplyr::group_by(Parc) %>%
+  dplyr::summarize(across(everything(), mean, na.rm = TRUE))
+
+Data_modeles_2 <- Data_modeles %>%
+  left_join(Data_composite_2[,c("Parc", "Composite", "Int_ti", "IFT_Ins_Fon")], by = "Parc")
+
+
+
+#=== Matrice de corrélation des 4 variables explicatrices du modèle
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(Data_modeles_2[,-c(1,3)])
+
+print(correlation_matrix)
+
+
+# Convertir la matrice de corrélation en data frame
+melted_correlation_matrix <- melt(correlation_matrix)
+
+# Créer le heatmap
+ggplot(melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(x = "Variable", y = "Variable", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_2, aes(x = Pianka_index, y = shannon_rarefied_Isp, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Composite (HSNtot_inv + Int_ti + IFT_Ins_Fon)",
+       y = "Pianka Index")
+
+model_c <- lm(Pianka_index ~ shannon_rarefied_ReadName + FS + Composite, data = Data_modeles_2)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_2, aes(x = Int_ti, y = Pianka_index, fill = FS)) +
+  geom_point(aes(color = FS, size = HSNtot)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Int_ti",
+       y = "Pianka Index")
+
+model_c <- lm(Pianka_index ~ Int_ti, data = Data_modeles_2)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_2, aes(x = Composite, y = shannon_rarefied_Isp, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Composite (HSNtot + Int_ti + IFT_Ins_Fon)",
+       y = "Shannon rarefié (Isp)")
+
+model_c <- lm(shannon_rarefied_Isp ~ Composite + FS, data = Data_modeles_2)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+
+###################################
+# Antoptic 20-09-2024
+###################################
+
+# Remarque 3 - mod4:Pianka_index ~ niveau de régulation des oeufs
+# Degré de spécialisation (Pianka sur la communauté de proies qu'on sélectionne (les 3 groupes de la remarque 2))
+
+
+Data_eggs <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/data_eggs.txt", header = TRUE, sep = "", fill = TRUE)
+Data_eggs <- subset(Data_eggs, sampling_date == "3" & type == "egg")
+
+Data_eggs <- rename(Data_eggs, Parc = vineyard)
+
+Data_eggs_2 <- Data_eggs %>%
+  dplyr::group_by(Parc) %>%
+  dplyr::summarize(across(everything(), mean, na.rm = TRUE))
+
+Data_modeles_4 <- Data_modeles_2 %>%
+  left_join(Data_eggs_2[,c("Parc", "Nrest", "Npred")], by = "Parc")
+
+Data_modeles_4 <- Data_modeles_4 %>%
+  left_join(pianka_df_preys[,c("Parc", "Pianka_index_preys")], by = "Parc")
+
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_4, aes(x = Npred, y = Pianka_index, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Npred",
+       y = "Pianka Index")
+
+model_c <- lm(Pianka_index ~ Npred + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_4, aes(x = Nrest, y = Pianka_index, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Nrest",
+       y = "Pianka Index")
+
+model_c <- lm(Pianka_index ~ Nrest + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+#============================
+
+
+#=== Matrice de corrélation des 4 variables explicatrices du modèle
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(Data_modeles_4[,-c(1,3,6,8,9)])
+
+print(correlation_matrix)
+
+
+# Convertir la matrice de corrélation en data frame
+melted_correlation_matrix <- melt(correlation_matrix)
+
+# Créer le heatmap
+ggplot(melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(x = "Variable", y = "Variable", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#=== Modèles
+
+# a)	Pianka ~ Shannon Isp + Shannon ReadName
+#	Si les deux Shannon ne sont pas significatifs, on passe à la b)
+# Si un seul Shannon est significatif, on passe à la c)
+# Si les deux Shannon sont significatifs, on passe à la d)
+
+model_a <- lm(Pianka_index_preys ~ shannon_rarefied_Isp + shannon_rarefied_ReadName, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_a_summary <- tidy(model_a)
+# Afficher les résultats
+print(model_a_summary)
+
+
+# Prey_Shannon_Diversity est significatif donc c)
+
+# b)	Pianka ~ FS + pHSN
+
+model_b <- lm(Pianka_index_preys ~ FS + HSNtot, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+# c)	Pianka ~ FS + pHSN + Shannon (Isp ou ReadName)
+
+model_c <- lm(Pianka_index_preys ~ FS + HSNtot + shannon_rarefied_ReadName, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+# d)	Pianka ~ FS + pHSN + Shannon Isp + Shannon ReadName
+
+model_d <- lm(Pianka_index_preys ~ FS + HSNtot + shannon_rarefied_Isp + shannon_rarefied_ReadName, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_d_summary <- tidy(model_d)
+# Afficher les résultats
+print(model_d_summary)
+
+
+
+#=== Graphiques des relations entre variables
+
+ggplot(data = Data_modeles_4, aes(x = shannon_rarefied_ReadName, y = Pianka_index_preys)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Prey_Shannon_Diversity", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ shannon_rarefied_ReadName, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+ggplot(data = Data_modeles_4, aes(x = shannon_rarefied_ReadName, y = Pianka_index_preys, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Prey_Shannon_Diversity", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ shannon_rarefied_ReadName + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+
+ggplot(data = Data_modeles_4, aes(x = shannon_rarefied_Isp, y = Pianka_index_preys)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Predator_Shannon_Diversity", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ shannon_rarefied_Isp, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+ggplot(data = Data_modeles_4, aes(x = shannon_rarefied_Isp, y = Pianka_index_preys, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Predator_Shannon_Diversity", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ shannon_rarefied_Isp + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+
+ggplot(data = Data_modeles_4, aes(x = Composite, y = Pianka_index_preys)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Composite", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ Composite, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+ggplot(data = Data_modeles_4, aes(x = Composite, y = Pianka_index_preys, fill = FS)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Graphique de corrélation avec régression linéaire", x = "Composite", y = "Pianka_index_preys")
+
+model_b <- lm(Pianka_index_preys ~ Composite + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_b_summary <- tidy(model_b)
+# Afficher les résultats
+print(model_b_summary)
+
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_4, aes(x = Npred, y = Pianka_index_preys, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Npred",
+       y = "Pianka Index_preys")
+
+model_c <- lm(Pianka_index_preys ~ Npred + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+
+# Visualiser les relations avec plusieurs prédicteurs
+ggplot(Data_modeles_4, aes(x = Nrest, y = Pianka_index_preys, fill = FS)) +
+  geom_point(aes(color = FS)) +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Nrest",
+       y = "Pianka Index_preys")
+
+model_c <- lm(Pianka_index_preys ~ Nrest + FS, data = Data_modeles_4)
+# Obtenir un résumé du modèle et ajouter l'espèce aux résultats
+model_c_summary <- tidy(model_c)
+# Afficher les résultats
+print(model_c_summary)
+
+
+
+model <- lm(Pianka_index_preys ~ shannon_rarefied_ReadName + Composite + Npred + shannon_rarefied_Isp, data = Data_modeles_4)
+summary(model)
+
+
+#--------------- Corrélation Pianka_index / Corrélation Pianka_index_preys ---------------------------------
+
+cor(Data_modeles_4$Pianka_index, Data_modeles_4$Pianka_index_preys, method = "pearson")
+cor(Data_modeles_4$Pianka_index, Data_modeles_4$Pianka_index_preys, method = "spearman")
+
+ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
+  geom_point() +  # Point coloré selon FS et taille selon HSNtot
+  geom_smooth(method = "lm", col = "red") +  # Ajoute la droite de régression
+  theme_minimal() +
+  labs(title = "Effet des prédicteurs sur Pianka Index",
+       x = "Pianka_index",
+       y = "Pianka Index_preys")
+
+
+#----- Mail Adrien - 03-10-2024 -----#
+# 1a- Comment nos changements environnementaux affectent le degré de chevauchement de niches entre prédateurs d’un même site ?
+      
+      Data_modeles_5 <- niche_overlap_df %>%
+        left_join(Data_composite_2, by = "Parc")
+      
+      # Modèle de régression linéaire multiple
+      modele <- lm(Niche_Overlap ~ Composite, data = Data_modeles_5)
+      
+      # Résumé du modèle
+      summary(modele)
+      
+      ggplot(Data_modeles_5, aes(x = Composite, y = Niche_Overlap)) +
+        geom_point() +
+        geom_smooth(method = "lm", col = "blue") +
+        geom_text(aes(label = Parc), vjust = -0.5, hjust = 0.5) +
+        theme_minimal() +
+        labs(title = "Relation entre Composite et chevauchement de niches",
+             x = "Composite",
+             y = "Chevauchement de niches")
+
+
+# 1b- Comment ce degré de chevauchement affecte la régulation des insectes phytophages à deux niveaux (l’ensemble des proies, ou certaines espèces qui sont ravageurs) ?
+#Insectes phytophages ?
+      
+    Data_modeles_5b <- niche_overlap_df %>%
+    left_join(Data_modeles_4, by = "Parc")
+
+    # Modèle de régression linéaire multiple
+    modele <- lm(Niche_Overlap ~ Npred, data = Data_modeles_5b)
+    
+    # Résumé du modèle
+    summary(modele)
+    
+    ggplot(Data_modeles_5b, aes(x = Npred, y = Niche_Overlap)) +
+      geom_point() +
+      geom_smooth(method = "lm", col = "blue") +
+      geom_text(aes(label = Parc), vjust = -0.5, hjust = 0.5) +
+      theme_minimal() +
+      labs(title = "Relation entre Npred et chevauchement de niches",
+           x = "Npred",
+           y = "Chevauchement de niches")
+    
+    # A POURSUIVRE
+      
+# 2- On pense globalement que des environnements moins perturbés (AB / bcp d’habitats semi-naturels) favorisent :
+     #(i)	la diversité et l’abondance des proies ce qui entraine du partitionnement de niches et donc une diminution du niche overlap moyen de prédateurs (bottom-up hypothesis);
+     #(ii)	la diversité et l’abondance des prédateurs ce qui entrainerait de la compétition et de la redondance fonctionnelle (?) et donc augmenter le niche overlap moyen des prédateurs (top-down hypothesis)
+     #(iii)	à la fois la diversité des prédateurs et des proies et donc ne change rien au niche overlap (ou les effets + / -  se compensent) (neutral hypothesis)
+        # J’aime bien l’idée ! En gros, est ce qu’un « gros réseaux » avec bcp de nœud, c’est juste un « gonflement proportionnel » des liens d’un petit réseau ?
+    
+  #Ça nous fait un jeu d’hypothèses à tester et on a déjà des éléments de réponses j’ai l’impression…on a juste regardé le niche overlap mais on pourrait rajouter abondance / diversité des prédateurs (peut être proie aussi ?) explicitement...
+    # Tu penses que les Shannon raréfiés déjà calculés ce n’est pas suffisants ? Ou tu penses à autre chose ?
+
+# 3- On pense que diminuer le niche overlap devrait favoriser la régulation globale des proies de phytophages alors que l’augmenter devrait diminuer la régulation globale des proies (car plus de compétitions, interférences etc) mais ça se discute car ça dépend de comment est structuré l’overlap dans l’espace et dans le temps (et ça on ne sait pas…) (Je pose délibérément une hypothèse à l’échelle de la communauté de proies) ….
+      # Je m’attendrai à ce que le niche overlap augmente la régulation des proies, dasn l’idée que ca intensifie la pression exercée sur les proies et les proba de capture
+    #=> ici je ne sais pas bien comment tester cette hypothèse : regarder les abondances poolées de certaines proies ? 
+    # On peut calculer un indice d’infestation comme on l’a fait pour le paysage et les pratiques avec les proies : tortricidae, phylloxeridae et cicadellidae (ca fait un peu gros sabot peut-être)
+    
+# 4- On peut revisiter les hypothèses ci-dessous (2- et 3-) mais ce coup-ci en se focalisant sur les communautés de prédateurs impliquées dans la régulation de quelques proies dont on a les abondances (eg, Lobesia, Scaphoïdeus…) 
+
+# 5- A ce stade on simplifie bcp notre histoire en regardant comment la richesse spécifique des prédateurs ou des proies affectent le niche overlap, mais ça me semble assez plat comme raisonnement.
+
+  #J’ai envie de regarder des histoires de compositions entre niveaux trophiques car on peut supposer que c’est ça qui va plus déterminer le niche overlap (car ça doit embarquer des aspects non trophiques etc…). On pourrait donc tester les hypothèses 2- en regardant comment la composition des prédateurs et/ou des proies affectent l’overlap ; pas hyper clair pour moi comment on fait pr résumer les compositions de communautés avec quelques vecteurs… (NMDS ?) mais on doit pouvoir trouver…
+    # On peut peut-être partir sur des indicateurs mesurant les niveaux de dissimilarité fonctionnelle ?
+
+
+
+# Calcul Niveau d'infestation tot (valeurs pour Tort, Phyll et Cica entre 0 et 1 respectivement puis somme ente 0 et 3)
+    Data_infest <- CR_Paysage
+    
+    Data_infest <- Data_infest %>%
+      group_by(Parc) %>%
+      summarise(Fcica = sum(Fcica, na.rm = TRUE),
+                Fphyl = sum(Fphyl, na.rm = TRUE),
+                Ftord = sum(Ftord, na.rm = TRUE))
+    
+    
+    Data_infest$Fcica_bin <- minMax(Data_infest$Fcica)
+    Data_infest$Fphyl_bin <- minMax(Data_infest$Fphyl)
+    Data_infest$Ftord_bin <- minMax(Data_infest$Ftord)
+    
+    Data_infest$Infest_tot <- Data_infest$Fcica_bin + Data_infest$Fphyl_bin + Data_infest$Ftord_bin
+    
+    
+    Data_modeles_6 <- niche_overlap_df %>%
+      left_join(Data_infest, by = "Parc")
+    
+    # Modèle de régression linéaire multiple
+    modele <- lm(Niche_Overlap ~ Infest_tot, data = Data_modeles_6)
+    summary(modele)
+
+    ggplot(Data_modeles_6, aes(x = Infest_tot, y = Niche_Overlap)) +
+      geom_point() +
+      geom_smooth(method = "lm", col = "blue") +
+      geom_text(aes(label = Parc), vjust = -0.5, hjust = 0.5) +
+      theme_minimal() +
+      labs(title = "Relation entre Npred et chevauchement de niches",
+           x = "Infest_tot",
+           y = "Chevauchement de niches")
+    
+    
+
+    ############################
+# Calculs pour papier Phytoma ou autres
+    ############################
+    
+# Décrire les espèces qui consomment les Phylloxeridae, Tortricidae et Cicadellidae
+  # Les 5 espèces qui sont le plus impliquées dans le contrôle
+    # Voir dans d'autres données si Conv et Bio sont semblables
+    
+    # Filtrer les lignes où ReadName contient "Cica", "Phyl" ou "Tort"
+    tab_pij2_All_species_Seuil_1_percent_pests <- tab_pij2_All_species_Seuil_1_percent %>%
+      filter(grepl("Cica|Phyl|Tort", ReadName))
+
+    subset_data_1 <- tab_pij2_All_species_Seuil_1_percent_pests
+    
+    # Transformer le data frame en matrice d'interaction pour ce parc
+    interaction_matrix_All_species_pests <- reshape2::dcast(subset_data_1, ReadName ~ Isp, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+    
+    # Mettre les noms de lignes et de colonnes
+    rownames(interaction_matrix_All_species_pests) <- interaction_matrix_All_species_pests[, 1]
+    interaction_matrix_All_species_pests <- as.matrix(interaction_matrix_All_species_pests[, -1])
+    
+    # Trier les lignes par ordre alphabétique des noms de lignes
+    interaction_matrix_All_species_pests <- interaction_matrix_All_species_pests[order(rownames(interaction_matrix_All_species_pests)), ]
+    
+
+
+    # Tracer le réseau avec les couleurs personnalisées
+    plotweb(interaction_matrix_All_species_pests, method = "normal", 
+            low.lablength = 30, arrow = "down", high.lablength = 30,
+            text.rot = 90, ybig = 1, y.width.high = 0.03, y.width.low = 0.03,
+            bor.col.interaction = NA)  # Applique la couleur aux labels des proies
+    
+    # Calculer les métriques de réseau
+    métriques_pests_all <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
+    
+    métriques_pests_all$métriques <- rownames(métriques_pests_all)
+    
+    
+    writexl::write_xlsx(métriques_pests_all, "métriques_all (pests).xlsx")
+    
+    
+    library(dplyr)
+    library(tidyr)
+    
+    # Convertir la matrice d'interaction en format long
+    interaction_long <- as.data.frame(interaction_matrix_All_species_pests) %>%
+      rownames_to_column(var = "ReadName") %>%
+      pivot_longer(-ReadName, names_to = "Isp", values_to = "PijComb") %>%
+      filter(PijComb > 0)  # Garder seulement les interactions positives
+    
+    # Isoler les 5 prédateurs qui consomment le plus chaque proie
+    top_consumers <- interaction_long %>%
+      group_by(ReadName) %>%
+      slice_max(order_by = PijComb, n = 5) %>%
+      ungroup()
+    
+    # Afficher les résultats
+    print(top_consumers)
+  
+    writexl::write_xlsx(top_consumers, "top_consumers (pests).xlsx")
+    
+    
+    
+    
+    ############################
+    # Calculs par parcelles
+    ############################
+    
+    
+    # Réseaux trophiques par parcelle
+    # Extraire les valeurs uniques de la colonne 'Parc'
+    parc_values <- unique(tab_pij2_All_species_Seuil_1_percent_pests$Parc)
+    
+    # Générer une palette de couleurs, par exemple avec RColorBrewer (ou d'autres)
+    colors <- grDevices::rainbow(length(parc_values))  # Utiliser un ensemble de couleurs distinctes
+    
+    # Initialiser une liste pour stocker les dataframes de métriques
+    list_métriques_pests <- list()
+    
+    # Boucle pour créer un tableau, une matrice et un graphique pour chaque Parc
+    for (i in seq_along(parc_values)) {
+      
+      # Filtrer les données pour un parc spécifique
+      parc <- parc_values[i]
+      subset_data_pests <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == parc, ]
+      
+      # Transformer le data frame en matrice d'interaction pour ce parc
+      interaction_matrix_All_species_pests <- reshape2::dcast(subset_data_pests, ReadName ~ Isp, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+      
+      # Mettre les noms de lignes et de colonnes
+      rownames(interaction_matrix_All_species_pests) <- interaction_matrix_All_species_pests[, 1]
+      interaction_matrix_All_species_pests <- as.matrix(interaction_matrix_All_species_pests[, -1])
+      
+      # Trier les lignes par ordre alphabétique des noms de lignes
+      interaction_matrix_All_species_pests <- interaction_matrix_All_species_pests[order(rownames(interaction_matrix_All_species_pests)), ]
+      
+      # Calculer les métriques de réseau
+      métriques_pests <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
+      # Stocker les métriques dans la liste
+      list_métriques_pests[[parc]] <- métriques_pests
+      
+      # Paramètres graphiques pour réduire la taille du graphique
+      op <- par(mar = c(0.1, 2, 0.1, 2) + 0.1, cex = 0.8)
+      
+      # Générer le graphique plotweb avec des liens plus visibles (en utilisant une couleur différente pour chaque parc)
+      plotweb(interaction_matrix_All_species_pests, method = "normal", 
+              low.lablength = 30, arrow = "down", high.lablength = 30,
+              text.rot = 90, col.low = "grey", ybig = 1, 
+              y.width.high = 0.03, y.width.low = 0.03, 
+              bor.col.interaction = "black",  # Bordure autour des interactions
+              col.interaction = colors[i])  # Couleur des liens pour chaque parc spécifique
+      
+      # Ajouter un titre spécifique pour chaque parc
+      title(main = paste("Réseau trophique pour Parc (pests)", parc))
+      
+      # Réinitialiser les paramètres graphiques
+      par(op)
+    }
+  
+    
+    
+    # Combiner tous les dataframes de métriques en un seul dataframe si souhaité
+    final_métriques_pests <- do.call(cbind, list_métriques_pests)
+    
+    # Renommer les colonnes avec le nom de la parcelle suivi d'un underscore
+    colnames(final_métriques_pests) <- paste0(parc_values, "_", colnames(final_métriques_pests))
+    final_métriques_pests$métriques <- rownames(final_métriques_pests)
+    
+    writexl::write_xlsx(final_métriques_pests, "final_métriques_par_parcelles (pests Parc).xlsx")
+    
+    
+
+    
+    library(dplyr)
+    library(tidyr)
+    
+    interaction_long_pests <- tab_pij2_All_species_Seuil_1_percent %>%
+      filter(grepl("Cica|Phyl|Tort", ReadName)) %>%  # Filtre les proies d'intérêt
+      select(ReadName, Isp, PijComb, Parc) %>%       # Sélectionne les colonnes nécessaires, y compris Parc
+      filter(PijComb > 0)   
+    
+    top_consumers_by_parc_pests <- interaction_long_pests %>%
+      group_by(Parc, ReadName) %>%
+      slice_max(order_by = PijComb, n = 5, with_ties = FALSE) %>%
+      ungroup()
+    
+    # Afficher les résultats pour vérification
+    print(top_consumers_by_parc_pests)
+
+    writexl::write_xlsx(top_consumers_by_parc_pests, "top_consumers_by_parc_pests (pests).xlsx")
+    
+    
+    library(reshape2)
+    
+    # Créer une matrice d'occurrence binaire avec `dcast`
+    occurrence_matrix <- dcast(top_consumers_by_parc_pests, Parc ~ Isp, fun.aggregate = length)
+    
+    # Transformer en binaire (remplace toutes valeurs >1 par 1)
+    occurrence_matrix[, -1] <- ifelse(occurrence_matrix[, -1] > 0, 1, 0)
+    
+    # Afficher la matrice
+    print(occurrence_matrix)
+    
+    
+    # Supprimer la colonne Isp pour obtenir seulement la matrice binaire
+    rownames(occurrence_matrix) <- occurrence_matrix$Parc
+    binary_matrix <- as.data.frame(occurrence_matrix[, -1])
+
+    
+    # Calculer l'indice de Sørensen entre parcelles
+    sorensen_similarity <- vegdist(binary_matrix, method = "bray", binary = TRUE)
+    
+    # Convertir en matrice pour faciliter la visualisation
+    sorensen_matrix <- as.matrix(1 - sorensen_similarity) # 1 - distance de Bray-Curtis pour obtenir la similarité
+    
+    colnames(sorensen_matrix) <- rownames(sorensen_matrix) <- colnames(occurrence_matrix)
+    
+    # Afficher la matrice de similarité de Sørensen
+    print(sorensen_matrix)
+    
+    library(pheatmap)
+    # Créer la heatmap de similarité
+    pheatmap(sorensen_matrix,
+             cluster_rows = TRUE,         # Clusteriser les lignes pour regrouper les parcelles similaires
+             cluster_cols = TRUE,         # Clusteriser les colonnes pour la même raison
+             display_numbers = TRUE,      # Afficher les valeurs de similarité dans les cellules
+             color = colorRampPalette(c("white", "lightblue", "salmon", "red"))(100),  # Palette de couleurs pour les valeurs de similarité
+             main = "Similarité de Sørensen entre les parcelles",
+             fontsize_number = 8)         # Ajuster la taille des valeurs affichées
+    
+    
+    # Boxplot des similarités de Sørensen par cluster
+    ggplot(similarity_data, aes(x = factor(cluster), y = Freq)) +
+      geom_boxplot(fill = c("lightblue", "salmon")) +
+      labs(x = "Cluster", y = "Similarité de Sørensen") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    
+    
+    
+    
+    # Charger le package
+    library(vegan)
+    
+    # Supposons que 'clusters' soit le vecteur des clusters pour chaque parcelle
+    clusters <- cutree(hclust(dist(sorensen_matrix)), k = 2)  # Ajustez k selon vos besoins
+    
+    # Créer une matrice de dissimilarité
+    sorensen_dist <- as.dist(1 - sorensen_matrix)  # Convertir la similarité en dissimilarité
+    
+    # Déterminer le nombre d'échantillons dans chaque cluster
+    n1 <- sum(clusters == 1)  # Nombre d'échantillons dans Cluster1
+    n2 <- sum(clusters == 2)  # Nombre d'échantillons dans Cluster2
+    
+    # Créer un facteur pour les groupes
+    group <- factor(clusters)  # Créez un facteur basé sur le vecteur 'clusters'
+    
+    # Effectuer le test de permutation
+    adonis_result <- adonis2(sorensen_dist ~ group, permutations = 999)
+    print(adonis_result)
+    
