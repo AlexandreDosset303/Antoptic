@@ -4518,23 +4518,28 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     
     library(dplyr)
     library(tidyr)
-    
-    # Convertir la matrice d'interaction en format long
-    interaction_long <- as.data.frame(interaction_matrix_All_species_pests) %>%
-      rownames_to_column(var = "ReadName") %>%
-      pivot_longer(-ReadName, names_to = "Isp", values_to = "PijComb") %>%
-      filter(PijComb > 0)  # Garder seulement les interactions positives
-    
+
     # Isoler les 5 prédateurs qui consomment le plus chaque proie
-    top_consumers <- interaction_long %>%
+    top_consumers <- tab_pij2_All_species_Seuil_1_percent_pests %>%
       group_by(ReadName) %>%
       slice_max(order_by = PijComb, n = 5) %>%
       ungroup()
+    
+    INS_Cicadellidae_Empoasca <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$ReadName == "INS_Tortricidae_Lobesia",]
+    
     
     # Afficher les résultats
     print(top_consumers)
   
     writexl::write_xlsx(top_consumers, "top_consumers (pests).xlsx")
+    writexl::write_xlsx(tab_pij2_All_species_Seuil_1_percent_pests, "tab_pij2_All_species_Seuil_1_percent_pests.xlsx")
+    writexl::write_xlsx(INS_Cicadellidae_Empoasca, "INS_Cicadellidae_Empoasca.xlsx")
+    writexl::write_xlsx(INS_Cicadellidae_Scaphoideus, "INS_Cicadellidae_Scaphoideus.xlsx")
+    writexl::write_xlsx(INS_Phylloxeridae_Daktulosphaira, "INS_Phylloxeridae_Daktulosphaira.xlsx")
+    writexl::write_xlsx(INS_Tortricidae_Lobesia, "INS_Tortricidae_Lobesia.xlsx")
     
     
     
