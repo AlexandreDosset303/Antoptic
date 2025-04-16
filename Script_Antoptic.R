@@ -1863,6 +1863,11 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
   modules <- computeModules(interaction_matrix_All_species)
   plotModuleWeb(modules) 
   
+  module_assignment <- modules@moduleWeb  # Une matrice avec les modules
+  
+  module_table <- data.table::as.data.table(module_assignment, keep.rownames = TRUE)
+  
+  
 # XIV - Centrality ----------------------------------------
 
   library(igraph)
@@ -4648,6 +4653,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     rownames(occurrence_matrix) <- occurrence_matrix$Parc
     binary_matrix <- as.data.frame(occurrence_matrix[, -1])
 
+    library(vegan)
     
     # Calculer l'indice de Sørensen entre parcelles
     sorensen_similarity <- vegdist(binary_matrix, method = "bray", binary = TRUE)
@@ -4655,7 +4661,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     # Convertir en matrice pour faciliter la visualisation
     sorensen_matrix <- as.matrix(1 - sorensen_similarity) # 1 - distance de Bray-Curtis pour obtenir la similarité
     
-    colnames(sorensen_matrix) <- rownames(sorensen_matrix) <- colnames(occurrence_matrix)
+    colnames(sorensen_matrix) <- rownames(sorensen_matrix)
     
     # Afficher la matrice de similarité de Sørensen
     print(sorensen_matrix)
@@ -4671,21 +4677,13 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
              fontsize_number = 8)         # Ajuster la taille des valeurs affichées
     
     
-    # Boxplot des similarités de Sørensen par cluster
-    ggplot(similarity_data, aes(x = factor(cluster), y = Freq)) +
-      geom_boxplot(fill = c("lightblue", "salmon")) +
-      labs(x = "Cluster", y = "Similarité de Sørensen") +
-      theme_minimal() +
-      theme(legend.position = "none")
-    
-    
-    
     
     # Charger le package
     library(vegan)
     
     # Supposons que 'clusters' soit le vecteur des clusters pour chaque parcelle
     clusters <- cutree(hclust(dist(sorensen_matrix)), k = 2)  # Ajustez k selon vos besoins
+    cluster_df <- data.frame(Parcelle = rownames(sorensen_matrix), cluster = as.factor(clusters))
     
     # Créer une matrice de dissimilarité
     sorensen_dist <- as.dist(1 - sorensen_matrix)  # Convertir la similarité en dissimilarité
@@ -4700,4 +4698,256 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     # Effectuer le test de permutation
     adonis_result <- adonis2(sorensen_dist ~ group, permutations = 999)
     print(adonis_result)
+    
+
+    
+    # Transformer la matrice de similarité en format long
+    sorensen_long <- melt(sorensen_matrix)
+    colnames(sorensen_long) <- c("Parcelle1", "Parcelle2", "Freq")
+    sorensen_long <- merge(sorensen_long, cluster_df, by.x = "Parcelle1", by.y = "Parcelle")
+    
+    
+    library(ggplot2)
+    # Boxplot des similarités de Sørensen par cluster
+    ggplot(sorensen_long, aes(x = factor(cluster), y = Freq)) +
+      geom_boxplot(fill = c("lightblue", "salmon")) +
+      labs(x = "Cluster", y = "Similarité de Sørensen") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    
+    
+    ################################
+    # Top consumers par Parc
+    ################################
+    
+    tab_pij2_pests_1088B <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1088B",]
+    
+    INS_Cicadellidae_Empoasca_1088B <- tab_pij2_pests_1088B[tab_pij2_pests_1088B$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1088B <- tab_pij2_pests_1088B[tab_pij2_pests_1088B$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1088B <- tab_pij2_pests_1088B[tab_pij2_pests_1088B$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1088B <- tab_pij2_pests_1088B[tab_pij2_pests_1088B$ReadName == "INS_Tortricidae_Lobesia",]
+    
+
+    tab_pij2_pests_1088C <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1088C",]
+    
+    INS_Cicadellidae_Empoasca_1088C <- tab_pij2_pests_1088C[tab_pij2_pests_1088C$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1088C <- tab_pij2_pests_1088C[tab_pij2_pests_1088C$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1088C <- tab_pij2_pests_1088C[tab_pij2_pests_1088C$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1088C <- tab_pij2_pests_1088C[tab_pij2_pests_1088C$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1435B <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1435B",]
+    
+    INS_Cicadellidae_Empoasca_1435B <- tab_pij2_pests_1435B[tab_pij2_pests_1435B$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1435B <- tab_pij2_pests_1435B[tab_pij2_pests_1435B$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1435B <- tab_pij2_pests_1435B[tab_pij2_pests_1435B$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1435B <- tab_pij2_pests_1435B[tab_pij2_pests_1435B$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1435C <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1435C",]
+    
+    INS_Cicadellidae_Empoasca_1435C <- tab_pij2_pests_1435C[tab_pij2_pests_1435C$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1435C <- tab_pij2_pests_1435C[tab_pij2_pests_1435C$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1435C <- tab_pij2_pests_1435C[tab_pij2_pests_1435C$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1435C <- tab_pij2_pests_1435C[tab_pij2_pests_1435C$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    
+    tab_pij2_pests_1650B <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1650B",]
+    
+    INS_Cicadellidae_Empoasca_1650B <- tab_pij2_pests_1650B[tab_pij2_pests_1650B$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1650B <- tab_pij2_pests_1650B[tab_pij2_pests_1650B$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1650B <- tab_pij2_pests_1650B[tab_pij2_pests_1650B$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1650B <- tab_pij2_pests_1650B[tab_pij2_pests_1650B$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1650C <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1650C",]
+    
+    INS_Cicadellidae_Empoasca_1650C <- tab_pij2_pests_1650C[tab_pij2_pests_1650C$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1650C <- tab_pij2_pests_1650C[tab_pij2_pests_1650C$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1650C <- tab_pij2_pests_1650C[tab_pij2_pests_1650C$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1650C <- tab_pij2_pests_1650C[tab_pij2_pests_1650C$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1662B <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1662B",]
+    
+    INS_Cicadellidae_Empoasca_1662B <- tab_pij2_pests_1662B[tab_pij2_pests_1662B$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1662B <- tab_pij2_pests_1662B[tab_pij2_pests_1662B$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1662B <- tab_pij2_pests_1662B[tab_pij2_pests_1662B$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1662B <- tab_pij2_pests_1662B[tab_pij2_pests_1662B$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1662C <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1662C",]
+    
+    INS_Cicadellidae_Empoasca_1662C <- tab_pij2_pests_1662C[tab_pij2_pests_1662C$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1662C <- tab_pij2_pests_1662C[tab_pij2_pests_1662C$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1662C <- tab_pij2_pests_1662C[tab_pij2_pests_1662C$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1662C <- tab_pij2_pests_1662C[tab_pij2_pests_1662C$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1868B <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1868B",]
+    
+    INS_Cicadellidae_Empoasca_1868B <- tab_pij2_pests_1868B[tab_pij2_pests_1868B$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1868B <- tab_pij2_pests_1868B[tab_pij2_pests_1868B$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1868B <- tab_pij2_pests_1868B[tab_pij2_pests_1868B$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1868B <- tab_pij2_pests_1868B[tab_pij2_pests_1868B$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    tab_pij2_pests_1868C <- tab_pij2_All_species_Seuil_1_percent_pests[tab_pij2_All_species_Seuil_1_percent_pests$Parc == "1868C",]
+    
+    INS_Cicadellidae_Empoasca_1868C <- tab_pij2_pests_1868C[tab_pij2_pests_1868C$ReadName == "INS_Cicadellidae_Empoasca",]
+    INS_Cicadellidae_Scaphoideus_1868C <- tab_pij2_pests_1868C[tab_pij2_pests_1868C$ReadName == "INS_Cicadellidae_Scaphoideus",]
+    INS_Phylloxeridae_Daktulosphaira_1868C <- tab_pij2_pests_1868C[tab_pij2_pests_1868C$ReadName == "INS_Phylloxeridae_Daktulosphaira",]
+    INS_Tortricidae_Lobesia_1868C <- tab_pij2_pests_1868C[tab_pij2_pests_1868C$ReadName == "INS_Tortricidae_Lobesia",]
+    
+    
+    
+    
+  ###############
+    # Tableau pour modèles antoptic Bordeaux
+  ###############
+    
+    ###############
+    # Tableau modèles
+    ###############
+    
+    Tab_models <- pianka_df
+    Tab_models$cult <- substr(Tab_models$Parc, nchar(Tab_models$Parc), nchar(Tab_models$Parc))
+    
+        #''''''''''''''''''''''''
+        #'  Div Pred (independant data)
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+    
+    Tab_natural_enemies <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/SOLUTION_data_naturalenemy_landscape_2015.txt", header = TRUE, sep = "\t")
+
+    Tab_natural_enemies$Genus_species <- paste(Tab_natural_enemies$genus, Tab_natural_enemies$species, sep = "_")
+    
+    Tab_natural_enemies <- rename(Tab_natural_enemies, Parc = vineyard)
+    
+    #Tab_natural_enemies <- Tab_natural_enemies %>%
+    #  filter(sampling_date %in% c(2, 3))
+    
+    #Regrouper les données pour avoir une matrice d'abondance
+    table_pred_abondance <- Tab_natural_enemies %>%
+      group_by(Parc, Genus_species) %>%
+      summarise(Pred_Abundance = sum(N), .groups = "drop") %>%
+      tidyr::pivot_wider(names_from = Genus_species, values_from = Pred_Abundance, values_fill = 0)
+    
+    #Calculer l'indice de Shannon pour chaque Parc
+    tab_pred_shannon_div <- table_pred_abondance %>%
+      column_to_rownames(var = "Parc") %>%
+      vegan::diversity(index = "shannon") %>%
+      as.data.frame() %>%
+      tibble::rownames_to_column(var = "Parc")
+    
+    # Renommer la colonne
+    colnames(tab_pred_shannon_div)[2] <- "Pred_Shannon_diversity"
+    
+    
+    tab_pred_shannon_div <- tab_pred_shannon_div %>%
+      filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+
+    
+        #''''''''''''''''''''''''
+        #'  CR_Paysage pour abondances ravageurs 
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+    
+    CR_Paysage_Tab_modèles <- CR_Paysage[,c("Parc", "cult", "camp", "NBcica", "NBtord", "NBphyl")]
+    
+    CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+      filter(camp %in% c(2, 3))
+    
+    CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+      filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+    
+    # Conserver la tableau pour calculer le delta camp 2 et 3
+    Tab_delta_2_3 <- CR_Paysage_Tab_modèles
+    
+    CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+      select(-cult, -camp)
+    
+    CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+      group_by(Parc) %>%
+      summarise(across(where(is.numeric), sum, na.rm = TRUE))
+    
+    
+        #''''''''''''''''''''''''
+        #'  CR_Paysage pour delta camp 2 et 3 pour Cica et Phyl 
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+    
+    Tab_delta_2_3 <- Tab_delta_2_3 %>%
+      pivot_wider(names_from = camp, values_from = c(NBcica, NBtord, NBphyl), names_prefix = "camp") %>%
+      mutate(delta_NBcica = NBcica_camp3 - NBcica_camp2,
+             delta_NBtord = NBtord_camp3 - NBtord_camp2,
+             delta_NBphyl = NBphyl_camp3 - NBphyl_camp2
+      ) %>%
+      select(Parc, starts_with("delta_"))
+    
+    
+        #''''''''''''''''''''''''
+        #'  CR_Paysage pour HSN
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+    
+    Tab_HSN <- CR_Paysage[,c("Parc","HSNtot")]
+    Tab_HSN <- Tab_HSN %>%
+      distinct(Parc, .keep_all = TRUE)
+    Tab_HSN <- Tab_HSN %>%
+      filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+    
+    
+        #''''''''''''''''''''''''
+        #'  Data_composite_2 pour IFT
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+    
+    Data_composite_2_Tab_modèles <- Data_composite_2[,c("Parc", "IFTHer", "IFTIns", "IFTFon", "IFT_Ins_Fon")]
+    
+        #''''''''''''''''''''''''
+        #'  Data_eggs_2 pour Npred
+        #''''''''''''''''''''''''
+        #''''''''''''''''''''''''
+        
+    Data_eggs_2_Tab_modèles <- Data_eggs_2[,c("Parc", "Npred")]
+    
+    ###############
+    # Ajouter au tableau modèles
+    ###############
+    
+    Tab_models <- Tab_models %>%
+      left_join(tab_pred_shannon_div, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(prey_shannon_diversity_All_species, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(CR_Paysage_Tab_modèles, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(Data_composite_2_Tab_modèles, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(Data_eggs_2_Tab_modèles, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(Tab_delta_2_3, by = "Parc")
+    
+    
+    write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
+                row.names = FALSE)
+    
+    ###############
+    # Métriques de réseau All_species (Nestedness, Connectance et vulnerability)
+    ###############
+    
+    metriques_reseau_All_species <- table_metriques_Dormann_2009[rownames(table_metriques_Dormann_2009) %in% c("vulnerability.LL", "connectance", "nestedness"), ]
+    
+    modularity_Tab_modèles <- module_table
+    
+    # Specialization ?
+    
+    
     
