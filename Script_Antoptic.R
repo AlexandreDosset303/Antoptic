@@ -4912,7 +4912,36 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
         
     Data_eggs_2_Tab_modèles <- Data_eggs_2[,c("Parc", "Npred")]
     
-
+    
+    
+    ###############
+    # Métriques de réseau All_species (Nestedness, Connectance, vulnerability and specialization)
+    ###############
+    
+    metriques_reseau_All_species_Parc <- final_métriques[rownames(final_métriques) %in% c("vulnerability.LL", "connectance", "nestedness", "specialisation asymmetry"), ]
+    
+    metriques_reseau_All_species_Parc <- rename(metriques_reseau_All_species_Parc, "1088B" = "1088B_networklevel(interaction_matrix_All_species)",
+                                                "1088C" = "1088C_networklevel(interaction_matrix_All_species)",
+                                                "1435B" = "1435B_networklevel(interaction_matrix_All_species)",
+                                                "1435C" = "1435C_networklevel(interaction_matrix_All_species)",
+                                                "1650B" = "1650B_networklevel(interaction_matrix_All_species)",
+                                                "1650C" = "1650C_networklevel(interaction_matrix_All_species)",
+                                                "1662B" = "1662B_networklevel(interaction_matrix_All_species)",
+                                                "1662C" = "1662C_networklevel(interaction_matrix_All_species)",
+                                                "1868B" = "1868B_networklevel(interaction_matrix_All_species)",
+                                                "1868C" = "1868C_networklevel(interaction_matrix_All_species)",)
+    
+    
+    t_metrics_Parc <- transpose(metriques_reseau_All_species_Parc)
+    colnames(t_metrics_Parc) <- rownames(metriques_reseau_All_species_Parc)
+    rownames(t_metrics_Parc) <- colnames(metriques_reseau_All_species_Parc)
+    
+    t_metrics_Parc <- t_metrics_Parc[-11,]
+    
+    t_metrics_Parc <- t_metrics_Parc %>%
+      tibble::rownames_to_column(var = "Parc")
+    
+    
     
     ###############
     # Ajouter au tableau modèles
@@ -4936,25 +4965,14 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     Tab_models <- Tab_models %>%
       left_join(Tab_delta_2_3, by = "Parc")
     
+    Tab_models <- Tab_models %>%
+      left_join(t_metrics_Parc, by = "Parc")
+    
     
     write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
                 row.names = FALSE)
     
-    ###############
-    # Métriques de réseau All_species (Nestedness, Connectance et vulnerability)
-    ###############
-    
-    metriques_reseau_All_species <- table_metriques_Dormann_2009[rownames(table_metriques_Dormann_2009) %in% c("vulnerability.LL", "connectance", "nestedness"), ]
-    
-    modularity_Tab_modèles <- metriques_reseau_All_species
-    
-    
-    write.table(modularity_Tab_modèles, file = "Network_metrics.txt", sep = "\t",
-                row.names = FALSE)
-    
-    # Specialization ?
-    
-    
+
     
     #''''''''''''''''''''''''
     #'  Calcul de l'indice de redondance fonctionnelle de Benjamin Feit
