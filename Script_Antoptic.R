@@ -5129,15 +5129,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     #####################
     # Mod1b
     #####################
-    Model1b_cult <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity, size = IFTTot)) +
-      geom_point() +
-      geom_text_repel(aes(label = Parc), size = 3) +
-      geom_smooth(method = "lm", se = FALSE) +
-      labs(x = "Diversité de Shannon des prédateurs", y = "Proportion d'habitats semi-naturels") +
-      theme_minimal()
-    Model1b_cult
-    ggsave(filename = "Model1b_cult.jpeg", plot = Model1b_cult, width = 11, height = 8)
-    
+
     Model1b <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity)) +
       geom_point(aes(size = IFTTot)) +
       geom_text_repel(aes(label = Parc), size = 3) +
@@ -5183,15 +5175,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     #####################
     # Mod2b
     #####################
-    Model2b_cult <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity, size = IFTTot)) +
-      geom_point() +
-      geom_text_repel(aes(label = Parc), size = 3) +
-      geom_smooth(method = "lm", se = FALSE) +
-      labs(x = "Diversité de Shannon des proies", y = "Proportion d'habitats semi-naturels") +
-      theme_minimal()
-    Model2b_cult
-    ggsave(filename = "Model2b_cult.jpeg", plot = Model2b_cult, width = 11, height = 8)
-    
+
     Model2b <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity)) +
       geom_point(aes(size = IFTTot)) +
       geom_text_repel(aes(label = Parc), size = 3) +
