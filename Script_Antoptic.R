@@ -4873,6 +4873,11 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       summarise(across(where(is.numeric), sum, na.rm = TRUE))
     
     
+    CR_Paysage_Tab_modèles_scaled <- scale(CR_Paysage_Tab_modèles[, c("NBcica", "NBtord", "NBphyl")], center = TRUE, scale = TRUE)
+    
+    CR_Paysage_Tab_modèles_scaled <- data.frame(Parc = CR_Paysage_Tab_modèles$Parc, NBAll_pests = rowSums(CR_Paysage_Tab_modèles_scaled))
+    
+    
         #''''''''''''''''''''''''
         #'  CR_Paysage pour delta camp 2 et 3 pour Cica et Phyl 
         #''''''''''''''''''''''''
@@ -4885,6 +4890,11 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       ) %>%
       select(Parc, starts_with("delta_"))
    
+    
+    Tab_delta_2_3_scaled <- scale(Tab_delta_2_3[, c("delta_NBcica", "delta_NBphyl")], center = TRUE, scale = TRUE)
+    
+    Tab_delta_2_3_scaled <- data.frame(Parc = Tab_delta_2_3$Parc, delta_NBAll_pests = rowSums(Tab_delta_2_3_scaled))
+    
     
         #''''''''''''''''''''''''
         #'  CR_Paysage pour HSN
@@ -4903,7 +4913,9 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
         #''''''''''''''''''''''''
         #''''''''''''''''''''''''
     
-    Data_composite_2_Tab_modèles <- Data_composite_2[,c("Parc", "IFTHer", "IFTIns", "IFTFon", "IFT_Ins_Fon")]
+    Data_composite_2_Tab_modèles <- Data_composite_2[,c("Parc", "IFTHer", "IFTIns", "IFTFon")]
+    Data_composite_2_Tab_modèles$IFTTot <- Data_composite_2_Tab_modèles$IFTHer + Data_composite_2_Tab_modèles$IFTIns + Data_composite_2_Tab_modèles$IFTFon
+    
     
         #''''''''''''''''''''''''
         #'  Data_eggs_2 pour Npred
@@ -4957,6 +4969,12 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       left_join(CR_Paysage_Tab_modèles, by = "Parc")
     
     Tab_models <- Tab_models %>%
+      left_join(CR_Paysage_Tab_modèles_scaled, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
+      left_join(Tab_HSN, by = "Parc")
+    
+    Tab_models <- Tab_models %>%
       left_join(Data_composite_2_Tab_modèles, by = "Parc")
     
     Tab_models <- Tab_models %>%
@@ -4966,7 +4984,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       left_join(Tab_delta_2_3, by = "Parc")
     
     Tab_models <- Tab_models %>%
-      left_join(t_metrics_Parc, by = "Parc")
+      left_join(Tab_delta_2_3_scaled, by = "Parc")
     
     
     write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
@@ -5065,5 +5083,304 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
                                 Feit_redundance_index = unlist(redundance_results))
     
     print(redundance_df)
+    
+    
+    
+    #####################
+    
+    
+#    Mod1a DivPred ~ HSN, AB
+#    Mod1b DivPred ~ HSN, IFTTot    
+#    Mod2a DivProie ~ HSN, AB
+#    Mod2b DivProie ~ HSN, AB
+#    Mod3 Overlap ~ DivPred
+#    Mod4 Overlap ~ DivProie
+#    Mod5a PestAbundance ~ Pianka
+#    Mod5b DeltaAb ~ Pianka
+#    Mod5c Npred ~ Pianka
+
+    #####################
+    # Mod1a
+    #####################
+    Model1a_cult <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity, color = cult)) +
+      geom_point() +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Diversité de Shannon des prédateurs", y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model1a_cult
+                  ggsave(filename = "Model1a_cult.jpeg", plot = Model1a_cult, width = 11, height = 8)
+    
+    Model1a <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity)) +
+            geom_point(aes(color = cult)) +
+            geom_text_repel(aes(label = Parc), size = 3) +
+            geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+            labs(x = "Diversité de Shannon des prédateurs",
+                 y = "Proportion d'habitats semi-naturels") +
+            theme_minimal()
+    Model1a
+                  ggsave(filename = "Model1a.jpeg", plot = Model1a, width = 11, height = 8)
+    
+                Model1a <- lm(Pred_Shannon_diversity ~ HSNtot + cult, data = Tab_models)
+                Model1a <- tidy(Model1a)
+                print(Model1a)
+                
+
+    #####################
+    # Mod1b
+    #####################
+    Model1b_cult <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity, size = IFTTot)) +
+      geom_point() +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Diversité de Shannon des prédateurs", y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model1b_cult
+    ggsave(filename = "Model1b_cult.jpeg", plot = Model1b_cult, width = 11, height = 8)
+    
+    Model1b <- ggplot(Tab_models, aes(x = HSNtot, y = Pred_Shannon_diversity)) +
+      geom_point(aes(size = IFTTot)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Diversité de Shannon des prédateurs",
+           y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model1b
+    ggsave(filename = "Model1b.jpeg", plot = Model1b, width = 11, height = 8)
+    
+    Model1b <- lm(Pred_Shannon_diversity ~ HSNtot + IFTTot, data = Tab_models)
+    Model1b <- tidy(Model1b)
+    print(Model1b)
+                
+                
+    #####################
+    # Mod2a
+    #####################
+    Model2a_cult <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity, color = cult)) +
+      geom_point() +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Diversité de Shannon des proies", y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+                Model2a_cult
+                ggsave(filename = "Model2a_cult.jpeg", plot = Model2a_cult, width = 11, height = 8)
+                
+      Model2a <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Diversité de Shannon des proies",
+           y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model2a
+    ggsave(filename = "Model2a.jpeg", plot = Model2a, width = 11, height = 8)
+    
+        Model2a <- lm(prey_shannon_diversity ~ HSNtot + cult, data = Tab_models)
+        Model2a <- tidy(Model2a)
+        print(Model2a)
+        
+        
+    #####################
+    # Mod2b
+    #####################
+    Model2b_cult <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity, size = IFTTot)) +
+      geom_point() +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Diversité de Shannon des proies", y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model2b_cult
+    ggsave(filename = "Model2b_cult.jpeg", plot = Model2b_cult, width = 11, height = 8)
+    
+    Model2b <- ggplot(Tab_models, aes(x = HSNtot, y = prey_shannon_diversity)) +
+      geom_point(aes(size = IFTTot)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Diversité de Shannon des proies",
+           y = "Proportion d'habitats semi-naturels") +
+      theme_minimal()
+    Model2b
+    ggsave(filename = "Model2b.jpeg", plot = Model2b, width = 11, height = 8)
+    
+    Model2b <- lm(prey_shannon_diversity ~ HSNtot + IFTTot, data = Tab_models)
+    Model2b <- tidy(Model2b)
+    print(Model2b)
+        
+        
+    #####################
+    # Mod3
+    #####################    
+    Model3 <- ggplot(Tab_models, aes(x = Pred_Shannon_diversity, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Diversité de Shannon des prédateurs",
+           y = "Indice de Pianka") +
+      theme_minimal()
+        Model3
+        ggsave(filename = "Model3.jpeg", plot = Model3, width = 11, height = 8)
+        
+        Model3 <- lm(Pianka_index ~ Pred_Shannon_diversity, data = Tab_models)
+        Model3 <- tidy(Model3)
+        print(Model3)
+        
+        
+    #####################
+    # Mod4
+    #####################    
+      Model4 <- ggplot(Tab_models, aes(x = prey_shannon_diversity, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Diversité de Shannon des proies",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+        Model4
+        ggsave(filename = "Model4.jpeg", plot = Model4, width = 11, height = 8)
+        
+        Model4 <- lm(Pianka_index ~ prey_shannon_diversity, data = Tab_models)
+        Model4 <- tidy(Model4)
+        print(Model4)
+    
+        
+    #####################
+    # Mod5a_cica
+    #####################    
+    Model5a_cica <- ggplot(Tab_models, aes(x = NBcica, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de cicadellidae",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5a_cica
+    ggsave(filename = "Model5a_cica.jpeg", plot = Model5a_cica, width = 11, height = 8)
+    
+    Model5a_cica <- lm(Pianka_index ~ NBcica, data = Tab_models)
+    Model5a_cica <- tidy(Model5a_cica)
+    print(Model5a_cica)
+        
+    #####################
+    # Mod5a_tord
+    #####################    
+    Model5a_tord <- ggplot(Tab_models, aes(x = NBtord, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de tordeuses",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5a_tord
+    ggsave(filename = "Model5a_tord.jpeg", plot = Model5a_tord, width = 11, height = 8)
+    
+    Model5a_tord <- lm(Pianka_index ~ NBtord, data = Tab_models)
+    Model5a_tord <- tidy(Model5a_tord)
+    print(Model5a_tord)
+    
+    #####################
+    # Mod5a_phyl
+    #####################    
+    Model5a_phyl <- ggplot(Tab_models, aes(x = NBphyl, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de phylloxera",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5a_phyl
+    ggsave(filename = "Model5a_phyl.jpeg", plot = Model5a_phyl, width = 11, height = 8)
+    
+    Model5a_phyl <- lm(Pianka_index ~ NBphyl, data = Tab_models)
+    Model5a_phyl <- tidy(Model5a_phyl)
+    print(Model5a_phyl)
+    
+    
+    #####################
+    # Mod5a_All_pests
+    #####################    
+    Model5a_All_pests <- ggplot(Tab_models, aes(x = NBAll_pests, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de Cica, Tord et Phyl",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5a_All_pests
+    ggsave(filename = "Model5a_All_pests.jpeg", plot = Model5a_All_pests, width = 11, height = 8)
+    
+    Model5a_All_pests <- lm(Pianka_index ~ NBAll_pests, data = Tab_models)
+    Model5a_All_pests <- tidy(Model5a_All_pests)
+    print(Model5a_All_pests)
+    
+
+    #####################
+    # Mod5b_delta_NBcica
+    #####################    
+    Model5b_delta_NBcica <- ggplot(Tab_models, aes(x = delta_NBcica, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de delta_NBcicadellidae",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5b_delta_NBcica
+    ggsave(filename = "Model5b_delta_NBcica.jpeg", plot = Model5b_delta_NBcica, width = 11, height = 8)
+    
+    Model5b_delta_NBcica <- lm(Pianka_index ~ delta_NBcica, data = Tab_models)
+    Model5b_delta_NBcica <- tidy(Model5b_delta_NBcica)
+    print(Model5b_delta_NBcica)
+    
+    #####################
+    # Mod5b_delta_NBphyl
+    #####################    
+    Model5b_delta_NBphyl <- ggplot(Tab_models, aes(x = delta_NBphyl, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de delta_NBphylloxera",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5b_delta_NBphyl
+    ggsave(filename = "Model5b_delta_NBphyl.jpeg", plot = Model5b_delta_NBphyl, width = 11, height = 8)
+    
+    Model5b_delta_NBphyl <- lm(Pianka_index ~ delta_NBphyl, data = Tab_models)
+    Model5b_delta_NBphyl <- tidy(Model5b_delta_NBphyl)
+    print(Model5b_delta_NBphyl)
+    
+    
+    #####################
+    # Mod5b_delta_All_pests
+    #####################    
+    Model5b_All_pests <- ggplot(Tab_models, aes(x = delta_NBAll_pests, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Abundance de delta_All_pests",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5b_All_pests
+    ggsave(filename = "Model5b_All_pests.jpeg", plot = Model5b_All_pests, width = 11, height = 8)
+    
+    Model5b_All_pests <- lm(Pianka_index ~ delta_NBAll_pests, data = Tab_models)
+    Model5b_All_pests <- tidy(Model5b_All_pests)
+    print(Model5b_All_pests)
+    
+    
+    #####################
+    # Mod5c
+    #####################    
+    Model5c <- ggplot(Tab_models, aes(x = Npred, y = Pianka_index)) +
+      geom_point(aes(color = cult)) +
+      geom_text_repel(aes(label = Parc), size = 3) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
+      labs(x = "Npred",
+           y = "Indice de Pianka") +
+      theme_minimal()        
+    Model5c
+    ggsave(filename = "Model5c.jpeg", plot = Model5c, width = 11, height = 8)
+    
+    Model5c <- lm(Pianka_index ~ Npred, data = Tab_models)
+    Model5c <- tidy(Model5c)
+    print(Model5c)
     
     
