@@ -4878,14 +4878,13 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
         #''''''''''''''''''''''''
         #''''''''''''''''''''''''
     
-    Tab_delta_2_3 <- Tab_delta_2_3 %>%
-      pivot_wider(names_from = camp, values_from = c(NBcica, NBtord, NBphyl), names_prefix = "camp") %>%
+    Tab_delta_2_3 <- Tab_delta_2_3[,c("Parc", "camp", "NBcica", "NBphyl")] %>%
+      pivot_wider(names_from = camp, values_from = c(NBcica, NBphyl), names_prefix = "camp") %>%
       mutate(delta_NBcica = NBcica_camp3 - NBcica_camp2,
-             delta_NBtord = NBtord_camp3 - NBtord_camp2,
              delta_NBphyl = NBphyl_camp3 - NBphyl_camp2
       ) %>%
       select(Parc, starts_with("delta_"))
-    
+   
     
         #''''''''''''''''''''''''
         #'  CR_Paysage pour HSN
@@ -4912,6 +4911,8 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
         #''''''''''''''''''''''''
         
     Data_eggs_2_Tab_modèles <- Data_eggs_2[,c("Parc", "Npred")]
+    
+
     
     ###############
     # Ajouter au tableau modèles
@@ -4945,9 +4946,106 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     
     metriques_reseau_All_species <- table_metriques_Dormann_2009[rownames(table_metriques_Dormann_2009) %in% c("vulnerability.LL", "connectance", "nestedness"), ]
     
-    modularity_Tab_modèles <- module_table
+    modularity_Tab_modèles <- metriques_reseau_All_species
+    
+    
+    write.table(modularity_Tab_modèles, file = "Network_metrics.txt", sep = "\t",
+                row.names = FALSE)
     
     # Specialization ?
     
+    
+    
+    #''''''''''''''''''''''''
+    #'  Calcul de l'indice de redondance fonctionnelle de Benjamin Feit
+    #''''''''''''''''''''''''
+    #''''''''''''''''''''''''
+    
+    # ln io (Insecta) 21.97205 => i0 Insecta = 3486101848
+    # ln io (Arachnida) 24.581475 => i0 Arachnida = 47380424732
+    
+    # Il faut intégrer le fait que i0 varie selon les taxons
+    
+    
+    #'  Création des fonctions
+    
+    Metabolic_rate <- function(Mi, I0 = 1) {
+      return(I0 * Mi^(3/4))
+    }
+    # Avec I0 = taxon-specific normalisation constant (Ehnes et al. 2011)
+    # et M the average dry body mass of predator i.
+    # Predator abundance was calculated from activity density in wet pitfall traps
+    
+    Risk_of_predation <- function(pij, qi, Ii) {
+      return(pij * qi * Ii)
+    }
+    # Avec prey group j,  predator i.
+    # pij is the probability of predator i feeding on prey j
+    # qi is the activity density of predators belonging to species i.
+    
+    
+    Feit_functional_redundancy_index <- function(Rij_vector) {
+      p_prime <- Rij_vector / sum(Rij_vector, na.rm = TRUE)
+      
+      # Calcul de l'entropie de Shannon
+      H <- -sum(p_prime * log(p_prime), na.rm = TRUE)
+      
+      # Redondance fonctionnelle
+      eH <- exp(H)
+      
+      return(eH)
+    }
+    
+    #####################
+    #'  Calcul de l'indice de redondance fonctionnelle de Benjamin Feit
+    
+    # Bootstrap pour l’indice de redondance fonctionnelle
+    bootstrap_redundancy_index <- function(data, n_bootstrap = 1000, sample_size = 20) {
+      eH_values <- numeric(n_bootstrap)
+      
+      for (b in 1:n_bootstrap) {
+        # Rééchantillonnage bootstrap des prédateurs
+        bootstrap_data <- data %>%
+          group_by(Isp) %>%
+          sample_n(size = min(sample_size, n()), replace = TRUE) %>%
+          ungroup()
+        
+        # Calcul du taux métabolique
+        bootstrap_data <- bootstrap_data %>%
+          mutate(Ii = Metabolic_rate(Mi))
+        
+        # Calcul du risque de prédation Rij
+        bootstrap_data <- bootstrap_data %>%
+          mutate(Rij = Risk_of_predation(pij = PijComb, qi = qi, Ii = Ii))
+        
+        # Calcul de eH pour chaque proie
+        eH_per_prey <- bootstrap_data %>%
+          group_by(ReadName) %>%
+          summarise(eH = Feit_functional_redundancy_index(Rij), .groups = "drop")
+        
+        # Moyenne des indices de redondance fonctionnelle sur toutes les proies
+        eH_values[b] <- mean(eH_per_prey$eH, na.rm = TRUE)
+      }
+      
+      # Retourner la moyenne des valeurs de redondance obtenues via bootstrap
+      return(mean(eH_values))
+    }
+    
+    
+    redundance_results <- list()
+    
+    for (nom_tableau in names(tableaux_interaction)) {
+      tab_pij2_filtered <- tableaux_interaction[[nom_tableau]]
+      
+      mean_eH <- bootstrap_redundancy_index(tab_pij2_filtered, n_bootstrap = 1000, sample_size = 20)
+      
+      redundance_results[[nom_tableau]] <- mean_eH
+    }
+    
+    # Résultat final en data frame
+    redundance_df <- data.frame(Parc = names(redundance_results),
+                                Feit_redundance_index = unlist(redundance_results))
+    
+    print(redundance_df)
     
     
