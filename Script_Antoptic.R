@@ -3797,6 +3797,12 @@ for (i in seq_along(parc_values)) {
   # Trier les lignes par ordre alphabétique des noms de lignes
   interaction_matrix_All_species <- interaction_matrix_All_species[order(rownames(interaction_matrix_All_species)), ]
   
+  # Créer une variable dynamique avec le nom du parc
+  var_name <- paste0("interaction_matrix_All_species_", parc)
+  
+  # Assigner la matrice à une variable avec ce nom
+  assign(var_name, interaction_matrix_All_species)
+  
   # Calculer les métriques de réseau
   métriques <- as.data.frame(networklevel(interaction_matrix_All_species))
   # Stocker les métriques dans la liste
@@ -4862,8 +4868,8 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
       filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
     
-    # Conserver la tableau pour calculer le delta camp 2 et 3
-    Tab_delta_2_3 <- CR_Paysage_Tab_modèles
+    # Conserver la tableau pour calculer le taux d'accroissement camp 2 et 3
+    Tab_accroissement_2_3 <- CR_Paysage_Tab_modèles
     
     CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
       select(-cult, -camp)
@@ -4875,7 +4881,7 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     
     CR_Paysage_Tab_modèles_scaled <- scale(CR_Paysage_Tab_modèles[, c("NBcica", "NBtord", "NBphyl")], center = TRUE, scale = TRUE)
     
-    CR_Paysage_Tab_modèles_scaled <- data.frame(Parc = CR_Paysage_Tab_modèles$Parc, NBAll_pests = rowSums(CR_Paysage_Tab_modèles_scaled))
+    CR_Paysage_Tab_modèles_scaled <- data.frame(Parc = CR_Paysage_Tab_modèles$Parc, NBAll_pests = rowMeans(CR_Paysage_Tab_modèles_scaled))
     
     
         #''''''''''''''''''''''''
@@ -4883,17 +4889,17 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
         #''''''''''''''''''''''''
         #''''''''''''''''''''''''
     
-    Tab_delta_2_3 <- Tab_delta_2_3[,c("Parc", "camp", "NBcica", "NBphyl")] %>%
+    Tab_accroissement_2_3 <- Tab_accroissement_2_3[,c("Parc", "camp", "NBcica", "NBphyl")] %>%
       pivot_wider(names_from = camp, values_from = c(NBcica, NBphyl), names_prefix = "camp") %>%
-      mutate(delta_NBcica = NBcica_camp3 - NBcica_camp2,
-             delta_NBphyl = NBphyl_camp3 - NBphyl_camp2
+      mutate(Taux_accroiss_NBcica = log((1 + NBcica_camp3) / (1 + NBcica_camp2)),
+             Taux_accroiss_NBphyl = log((1 + NBphyl_camp3) / (1 + NBphyl_camp2))
       ) %>%
-      select(Parc, starts_with("delta_"))
+      select(Parc, starts_with("Taux_accroiss_"))
    
     
-    Tab_delta_2_3_scaled <- scale(Tab_delta_2_3[, c("delta_NBcica", "delta_NBphyl")], center = TRUE, scale = TRUE)
+    Tab_accroissement_2_3_scaled <- scale(Tab_accroissement_2_3[, c("Taux_accroiss_NBcica", "Taux_accroiss_NBphyl")], center = TRUE, scale = TRUE)
     
-    Tab_delta_2_3_scaled <- data.frame(Parc = Tab_delta_2_3$Parc, delta_NBAll_pests = rowSums(Tab_delta_2_3_scaled))
+    Tab_accroissement_2_3_scaled <- data.frame(Parc = Tab_accroissement_2_3$Parc, Taux_accroiss_NBAll_pests = rowMeans(Tab_accroissement_2_3_scaled))
     
     
         #''''''''''''''''''''''''
@@ -4981,10 +4987,10 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       left_join(Data_eggs_2_Tab_modèles, by = "Parc")
     
     Tab_models <- Tab_models %>%
-      left_join(Tab_delta_2_3, by = "Parc")
+      left_join(Tab_accroissement_2_3, by = "Parc")
     
     Tab_models <- Tab_models %>%
-      left_join(Tab_delta_2_3_scaled, by = "Parc")
+      left_join(Tab_accroissement_2_3_scaled, by = "Parc")
     
     
     write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
@@ -5298,56 +5304,56 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     
 
     #####################
-    # Mod5b_delta_NBcica
+    # Mod5b_accroiss_NBcica
     #####################    
-    Model5b_delta_NBcica <- ggplot(Tab_models, aes(x = delta_NBcica, y = Pianka_index)) +
+    Mod5b_accroiss_NBcica <- ggplot(Tab_models, aes(x = Taux_accroiss_NBcica, y = Pianka_index)) +
       geom_point(aes(color = cult)) +
       geom_text_repel(aes(label = Parc), size = 3) +
       geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
-      labs(x = "Abundance de delta_NBcicadellidae",
+      labs(x = "Taux d'accroissement des Cicadellidae",
            y = "Indice de Pianka") +
       theme_minimal()        
-    Model5b_delta_NBcica
-    ggsave(filename = "Model5b_delta_NBcica.jpeg", plot = Model5b_delta_NBcica, width = 11, height = 8)
+    Mod5b_accroiss_NBcica
+    ggsave(filename = "Mod5b_accroiss_NBcica.jpeg", plot = Mod5b_accroiss_NBcica, width = 11, height = 8)
     
-    Model5b_delta_NBcica <- lm(Pianka_index ~ delta_NBcica, data = Tab_models)
-    Model5b_delta_NBcica <- tidy(Model5b_delta_NBcica)
-    print(Model5b_delta_NBcica)
+    Model5b_accroiss_NBcica <- lm(Pianka_index ~ Taux_accroiss_NBcica, data = Tab_models)
+    Model5b_delta_NBcica <- tidy(Model5b_accroiss_NBcica)
+    print(Model5b_accroiss_NBcica)
     
     #####################
-    # Mod5b_delta_NBphyl
+    # Model5b_accroiss_NBphyl
     #####################    
-    Model5b_delta_NBphyl <- ggplot(Tab_models, aes(x = delta_NBphyl, y = Pianka_index)) +
+    Model5b_accroiss_NBphyl <- ggplot(Tab_models, aes(x = Taux_accroiss_NBphyl, y = Pianka_index)) +
       geom_point(aes(color = cult)) +
       geom_text_repel(aes(label = Parc), size = 3) +
       geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
-      labs(x = "Abundance de delta_NBphylloxera",
+      labs(x = "Taux d'accroissement des Phylloxera",
            y = "Indice de Pianka") +
       theme_minimal()        
-    Model5b_delta_NBphyl
-    ggsave(filename = "Model5b_delta_NBphyl.jpeg", plot = Model5b_delta_NBphyl, width = 11, height = 8)
+    Model5b_accroiss_NBphyl
+    ggsave(filename = "Mod5b_accroiss_NBphyl.jpeg", plot = Taux_accroiss_NBphyl, width = 11, height = 8)
     
-    Model5b_delta_NBphyl <- lm(Pianka_index ~ delta_NBphyl, data = Tab_models)
-    Model5b_delta_NBphyl <- tidy(Model5b_delta_NBphyl)
-    print(Model5b_delta_NBphyl)
+    Model5b_accroiss_NBphyl <- lm(Pianka_index ~ Taux_accroiss_NBphyl, data = Tab_models)
+    Model5b_accroiss_NBphyl <- tidy(Model5b_accroiss_NBphyl)
+    print(Model5b_accroiss_NBphyl)
     
     
     #####################
-    # Mod5b_delta_All_pests
+    # Mod5b_accroiss_All_pests
     #####################    
-    Model5b_All_pests <- ggplot(Tab_models, aes(x = delta_NBAll_pests, y = Pianka_index)) +
+    Model5b_accroiss_All_pests <- ggplot(Tab_models, aes(x = Taux_accroiss_NBAll_pests, y = Pianka_index)) +
       geom_point(aes(color = cult)) +
       geom_text_repel(aes(label = Parc), size = 3) +
       geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
-      labs(x = "Abundance de delta_All_pests",
+      labs(x = "Taux d'accroissement des Cicadellidae et Phylloxera",
            y = "Indice de Pianka") +
       theme_minimal()        
-    Model5b_All_pests
-    ggsave(filename = "Model5b_All_pests.jpeg", plot = Model5b_All_pests, width = 11, height = 8)
+    Model5b_accroiss_All_pests
+    ggsave(filename = "Model5b_accroiss_All_pests.jpeg", plot = Model5b_accroiss_All_pests, width = 11, height = 8)
     
-    Model5b_All_pests <- lm(Pianka_index ~ delta_NBAll_pests, data = Tab_models)
-    Model5b_All_pests <- tidy(Model5b_All_pests)
-    print(Model5b_All_pests)
+    Model5b_accroiss_All_pests <- lm(Pianka_index ~ Taux_accroiss_NBAll_pests, data = Tab_models)
+    Model5b_accroiss_All_pests <- tidy(Model5b_accroiss_All_pests)
+    print(Model5b_accroiss_All_pests)
     
     
     #####################
