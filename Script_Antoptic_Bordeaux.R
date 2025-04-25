@@ -14,111 +14,177 @@ library(bipartite)
 library(vegan)
 library(broom)
 library(reshape2)
+library(FactoMineR)
+library(factoextra)
 
 #####Importation des donn?es#####
 
 TAB <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/TAB.txt", header = TRUE, sep = "")
 tab_pij2 <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/tab_pij2.txt", header = TRUE, sep = "")
 tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longpotamon") # Retirer une espèce de crustacés qui est un artefact
+Data_IFT <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/pratiques_paysages_2015.txt", header = TRUE, sep = "")
+CR_Paysage <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/CR_Paysage.txt", header = TRUE, sep = "")
+Data_eggs <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/data_eggs.txt", header = TRUE, sep = "", fill = TRUE)
+
 #################################
 
-# I - Préparation des données descriptives =======================================================================
-# ===== I-1 - Créer un data frame pour chaque parcelle -----------------------------------------------------
+# Filtrer les lignes où la colonne "to_keep" a la valeur "oui"
+TAB_Kept <- TAB %>%
+  filter(to_keep == "oui")
 
-unique(tab_pij2$Parc)
+# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs spécifiques dans "Isp"
+TAB_All_species <- TAB_Kept
+# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs spécifiques dans "Isp"
+tab_pij2_All_species <- tab_pij2
 
-# Diviser le tableau initial en plusieurs tableaux par la colonne "Parc"
-list_of_dataframes <- split(tab_pij2, tab_pij2$Parc)
-
-# Afficher les noms des tableaux créés
-names(list_of_dataframes)
+# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs "PijComb" > O.O1
+tab_pij2_All_species_Seuil_1_percent <- tab_pij2_All_species %>% filter(PijComb > 0.01)
+tab_pij2_All_species_Seuil_1_percent$FS <- substr(tab_pij2_All_species_Seuil_1_percent$Parc, nchar(tab_pij2_All_species_Seuil_1_percent$Parc), nchar(tab_pij2_All_species_Seuil_1_percent$Parc))
 
 
-# Utiliser une boucle pour assigner chaque tableau à une variable distincte
-for (parc_name in names(list_of_dataframes)) {
-  assign(parc_name, list_of_dataframes[[parc_name]])
+# XII - Fonction pour calculer l'indice de chevauchement de Pianka ===============
+# https://rdrr.io/cran/EcoSimR/man/pianka.html
+
+pianka_index <- function(matrix) {
+  species <- nrow(matrix)
+  pianka_matrix <- matrix(NA, nrow = species, ncol = species)
+  rownames(pianka_matrix) <- rownames(matrix)
+  colnames(pianka_matrix) <- rownames(matrix)
+  
+  for (j in 1:species) {
+    for (k in 1:species) {
+      if (j != k) {
+        pj <- matrix[j, ] / sum(matrix[j, ])
+        pk <- matrix[k, ] / sum(matrix[k, ])
+        
+        numerator <- sum(pj * pk)
+        denominator <- sqrt(sum(pj^2) * sum(pk^2))
+        
+        pianka_matrix[j, k] <- numerator / denominator
+      }
+    }
+  }
+  return(pianka_matrix)
 }
 
 
-# ===== I-2 - Calcul du Ratio proies détectées (pijComb<0,01)/ proies non-détectées (pijComb>0,01) ---------
+library(dplyr)
 
-# Compter le nombre de valeurs dans la colonne pijComb inférieures à 0,01
-nb_inf_0_01 <- sum(tab_pij2$PijComb < 0.01, na.rm = TRUE)
-# Compter le nombre de valeurs dans la colonne pijComb supérieures à 0,01
-nb_sup_0_01 <- sum(tab_pij2$PijComb > 0.01, na.rm = TRUE)
+# Obtenir toutes les valeurs uniques de la colonne Parc
+parc_values <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
 
-# Calculer le ratio
-Ratio_detected_not_detected <- nb_inf_0_01 / nb_sup_0_01
-# Afficher le ratio
-print(Ratio_detected_not_detected)
+# Fonction pour filtrer la table en fonction du parc
+filter_by_parc <- function(parc) {
+  tab_pij2_filtered <- tab_pij2_All_species_Seuil_1_percent %>%
+    filter(Parc == parc)
+  
+  return(tab_pij2_filtered)
+}
 
-# ===== I-3 - Calcul du Ratio proies détectées (pijComb<0,01)/ proies totales ------------------------------
-
-# Compter le nombre de valeurs dans la colonne pijComb
-nb_tot <- length(tab_pij2$PijComb)
-
-# Calculer le ratio
-Ratio_detected_total <- nb_inf_0_01 / nb_tot
-# Afficher le ratio
-print(Ratio_detected_total)
-
-# ===== I-4 - Calcul des Ratios pour chaque valeur de "Parc" -----------------------------------------------
-
-ratios_by_parc <- tab_pij2 %>%
-  group_by(Parc) %>%
-  summarise(
-    nb_inf_0_01 = sum(PijComb < 0.01, na.rm = TRUE),
-    nb_sup_0_01 = sum(PijComb > 0.01, na.rm = TRUE),
-    nb_tot = n()
-  ) %>%
-  mutate(
-    Ratio_detected_not_detected = nb_inf_0_01 / nb_sup_0_01,
-    Ratio_detected_total = nb_inf_0_01 / nb_tot
-  )
-
-# Afficher les résultats
-print(ratios_by_parc)
+# Créer des variables dynamiques pour chaque valeur de Parc
+for (parc in parc_values) {
+  # Créer un nom de variable dynamique
+  var_name <- paste0("tab_pij2_filtered_", parc)
+  
+  # Assigner le tableau filtré à la variable dynamique
+  assign(var_name, filter_by_parc(parc))
+}
 
 
-# II - Préparation des données de travail ========================================================================
-# ===== II-1 - Prendre un sous-échantillon des espèces présentes sur les 10 sites (totalité) ---------------
+#------------------------------------------------------------------------
+# Liste des tableaux d'interaction
+tableaux_interaction <- list("1088B" = tab_pij2_filtered_1088B, 
+                             "1088C" = tab_pij2_filtered_1088C,
+                             "1435B" = tab_pij2_filtered_1435B,
+                             "1435C" = tab_pij2_filtered_1435C,
+                             "1650B" = tab_pij2_filtered_1650B,
+                             "1650C" = tab_pij2_filtered_1650C,
+                             "1662B" = tab_pij2_filtered_1662B,
+                             "1662C" = tab_pij2_filtered_1662C,
+                             "1868B" = tab_pij2_filtered_1868B,
+                             "1868C" = tab_pij2_filtered_1868C)
 
-tab_pij2_unique <- tab_pij2 %>%
-  distinct(Isp, Parc)
 
-# Ajouter une colonne pour indiquer la présence
-tab_pij2_unique <- tab_pij2_unique %>%
-  mutate(presence = 1)
+# Fonction pour effectuer le bootstrap et calculer la moyenne de l'indice de Pianka
+bootstrap_matrix <- function(data, n_bootstrap = 1000, sample_size = 20) {
+  # Initialiser un vecteur pour stocker les valeurs de Pianka
+  pianka_values <- numeric(n_bootstrap)
+  
+  for (b in 1:n_bootstrap) {
+    # Rééchantillonnage bootstrap des données
+    bootstrap_data <- data %>%
+      group_by(Isp) %>%
+      sample_n(size = min(sample_size, n()), replace = TRUE) %>%
+      ungroup()
+    
+    # Créer la matrice d'interaction entre les prédateurs et les proies
+    interaction_matrix <- dcast(bootstrap_data, Isp ~ ReadName, value.var = "PijComb", fun.aggregate = mean, fill = 0)
+    
+    # Convertir la matrice en un format adapté à pianka()
+    interaction_matrix_data <- as.matrix(interaction_matrix[, -1])  # Retirer la colonne des noms de prédateurs (Isp)
+    rownames(interaction_matrix_data) <- interaction_matrix$Isp  # Nommer les lignes par les prédateurs
+    
+    # Utiliser la fonction pianka() pour calculer l'indice de Pianka
+    pianka_matrix <- EcoSimR::pianka(interaction_matrix_data)
+    
+    # Calculer la moyenne des indices de Pianka (uniquement la partie inférieure de la matrice)
+    pianka_values[b] <- mean(pianka_matrix)
+  }
+  
+  # Retourner la moyenne des valeurs de Pianka obtenues via le bootstrap
+  return(mean(pianka_values))
+}
 
-# Transformer les valeurs de "Parc" en colonnes
-tab_pij2_unique_wide <- tab_pij2_unique %>%
-  pivot_wider(names_from = Parc, values_from = presence, values_fill = list(presence = 0))
 
-# Transformer les valeurs de "Parc" en colonnes
-tab_pij2_nb_in_parc <- tab_pij2_unique_wide
-tab_pij2_nb_in_parc$nb_in_parc <- rowSums(tab_pij2_unique_wide[, -1])
 
-# Supprimer les lignes qui contiennent une valeur de 0 dans les colonnes sauf la première
-tab_pij2_present_in_all_parc<- tab_pij2_unique_wide %>%
-  filter(if_all(-1, ~ . != 0))
+# Liste pour stocker les résultats
+pianka_results <- list()
 
-# Affichage du tableau filtré et modifié
-print(tab_pij2_present_in_all_parc)
+# Boucle sur chaque tableau d'interaction
+for (nom_tableau in names(tableaux_interaction)) {
+  # Récupérer le tableau actuel
+  tab_pij2_filtered <- tableaux_interaction[[nom_tableau]]
+  
+  # Calculer la moyenne de l'indice de Pianka avec bootstrap
+  mean_pianka <- bootstrap_matrix(tab_pij2_filtered, n_bootstrap = 1000, sample_size = 20)
+  
+  # Stocker le résultat dans la liste avec le nom du tableau d'interaction
+  pianka_results[[nom_tableau]] <- mean_pianka
+}
+
+# Convertir la liste des résultats en tableau (data frame)
+pianka_df <- data.frame(Parc = names(pianka_results), 
+                        Pianka_index = unlist(pianka_results))
+
+# Afficher le tableau final avec les résultats de Pianka
+print(pianka_df)
+
+
+
+
+Data_IFT <- rename(Data_IFT, Parc = parc)
+Data_IFT$IFT_Ins_Fon <- Data_IFT$IFTIns + Data_IFT$IFTFon
+
+# Fusionner les deux tables par la colonne 'Parc'
+CR_Paysage <- rename(CR_Paysage, Parc = parc)
+
+data_merged <- merge(tab_pij2_All_species_Seuil_1_percent, CR_Paysage, by = "Parc")
+data_merged <- merge(data_merged, pianka_df, by = "Parc")
+
+data_ACP <- merge(data_merged[, c("Parc", "FS", "AC", "AB", "HSNtot", "Pianka_index")], 
+                  Data_IFT[, c("Parc", "IFTHer", "IFTIns", "IFTFon", "IFT_Ins_Fon", "surf", "Int_ti")], by = c("Parc"))
 
 
 #############
-#### PCA on environmental data to examine domensions of land use intensity
+#### PCA on environmental data to examine dimensions of land use intensity
 ############
-
-library(FactoMineR)
-library(factoextra)
 
 head(data_ACP)
 
 #scale data
 
 dataPCA_Adrien <- data_ACP %>%
-  select(HSNtot, IFTHer, IFTIns, IFTFon, Int_ti)
+  select(HSNtot, IFTHer, IFTIns, IFTFon, Int_ti, Pianka_index)
 
 dataPCA_Adrien_2 <- dataPCA_Adrien
 dataPCA_Adrien_2$IFTTot <- dataPCA_Adrien_2$IFTHer + dataPCA_Adrien_2$IFTIns + dataPCA_Adrien_2$IFTFon
@@ -252,17 +318,76 @@ dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
   mutate(tab_prey_shannon_div)
 
 ################
-# pianka_df
-################
-
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
-  mutate(pianka_df)
-
-################
 # metriques reseaux par Parc
 ################
 
-metriques_reseau_All_species_Parc <- final_métriques[rownames(final_métriques) %in% c("vulnerability.LL", "connectance", "nestedness", "generality.HL", "niche.overlap.HL", "niche.overlap.LL", "modularity Q", "H2"), ]
+# Réseaux trophiques par parcelle
+# Extraire les valeurs uniques de la colonne 'Parc'
+parc_values <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
+
+# Générer une palette de couleurs, par exemple avec RColorBrewer (ou d'autres)
+colors <- grDevices::rainbow(length(parc_values))  # Utiliser un ensemble de couleurs distinctes
+
+# Initialiser une liste pour stocker les dataframes de metriques
+list_metriques <- list()
+
+# Boucle pour créer un tableau, une matrice et un graphique pour chaque Parc
+for (i in seq_along(parc_values)) {
+  
+  # Filtrer les données pour un parc spécifique
+  parc <- parc_values[i]
+  subset_data <- tab_pij2_All_species_Seuil_1_percent[tab_pij2_All_species_Seuil_1_percent$Parc == parc, ]
+  
+  # Transformer le data frame en matrice d'interaction pour ce parc
+  interaction_matrix_All_species <- reshape2::dcast(subset_data, ReadName ~ Isp, value.var = "PijComb", fun.aggregate = sum, fill = 0)
+  
+  # Mettre les noms de lignes et de colonnes
+  rownames(interaction_matrix_All_species) <- interaction_matrix_All_species[, 1]
+  interaction_matrix_All_species <- as.matrix(interaction_matrix_All_species[, -1])
+  
+  # Trier les lignes par ordre alphabétique des noms de lignes
+  interaction_matrix_All_species <- interaction_matrix_All_species[order(rownames(interaction_matrix_All_species)), ]
+  
+  # Créer une variable dynamique avec le nom du parc
+  var_name <- paste0("interaction_matrix_All_species_", parc)
+  
+  # Assigner la matrice à une variable avec ce nom
+  assign(var_name, interaction_matrix_All_species)
+  
+  # Calculer les metriques de réseau
+  metriques <- as.data.frame(networklevel(interaction_matrix_All_species))
+  # Stocker les metriques dans la liste
+  list_metriques[[parc]] <- metriques
+  
+  # Paramètres graphiques pour réduire la taille du graphique
+  op <- par(mar = c(0.1, 2, 0.1, 2) + 0.1, cex = 0.8)
+  
+  # Générer le graphique plotweb avec des liens plus visibles (en utilisant une couleur différente pour chaque parc)
+  plotweb(interaction_matrix_All_species, method = "normal",
+          arrow = "down",
+          text.rot = 90, col.low = "grey",
+          bor.col.interaction = "black",  # Bordure autour des interactions
+          col.interaction = colors[i])  # Couleur des liens pour chaque parc spécifique
+  
+  # Ajouter un titre spécifique pour chaque parc
+  title(main = paste("Réseau trophique pour Parc", parc))
+  
+  # Réinitialiser les paramètres graphiques
+  par(op)
+}
+
+# Combiner tous les dataframes de metriques en un seul dataframe si souhaité
+final_metriques <- do.call(cbind, list_metriques)
+
+# Renommer les colonnes avec le nom de la parcelle suivi d'un underscore
+colnames(final_metriques) <- paste0(parc_values, "_", colnames(final_metriques))
+final_metriques$metriques <- rownames(final_metriques)
+
+writexl::write_xlsx(final_metriques, "final_metriques_par_parcelles.xlsx")
+
+
+
+metriques_reseau_All_species_Parc <- final_metriques[rownames(final_metriques) %in% c("vulnerability.LL", "connectance", "nestedness", "generality.HL", "niche.overlap.HL", "niche.overlap.LL", "modularity Q", "H2"), ]
 
 metriques_reseau_All_species_Parc <- rename(metriques_reseau_All_species_Parc, "1088B" = "1088B_networklevel(interaction_matrix_All_species)",
                                             "1088C" = "1088C_networklevel(interaction_matrix_All_species)",
@@ -403,10 +528,248 @@ dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
 
 
 
+###############
+# Tableau modèles
+###############
+
+Tab_models <- pianka_df
+Tab_models$cult <- substr(Tab_models$Parc, nchar(Tab_models$Parc), nchar(Tab_models$Parc))
+
+#''''''''''''''''''''''''
+#'  Div Pred (independant data)
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+Tab_natural_enemies <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/SOLUTION_data_naturalenemy_landscape_2015.txt", header = TRUE, sep = "\t")
+
+Tab_natural_enemies$Genus_species <- paste(Tab_natural_enemies$genus, Tab_natural_enemies$species, sep = "_")
+
+Tab_natural_enemies <- rename(Tab_natural_enemies, Parc = vineyard)
+
+#Tab_natural_enemies <- Tab_natural_enemies %>%
+#  filter(sampling_date %in% c(2, 3))
+
+#Regrouper les données pour avoir une matrice d'abondance
+table_pred_abondance <- Tab_natural_enemies %>%
+  group_by(Parc, Genus_species) %>%
+  summarise(Pred_Abundance = sum(N), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = Genus_species, values_from = Pred_Abundance, values_fill = 0)
+
+#Calculer l'indice de Shannon pour chaque Parc
+tab_pred_shannon_div <- table_pred_abondance %>%
+  column_to_rownames(var = "Parc") %>%
+  vegan::diversity(index = "shannon") %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "Parc")
+
+# Renommer la colonne
+colnames(tab_pred_shannon_div)[2] <- "Pred_Shannon_diversity"
+
+
+tab_pred_shannon_div <- tab_pred_shannon_div %>%
+  filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+
+
+#''''''''''''''''''''''''
+#'  CR_Paysage pour abondances ravageurs 
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+CR_Paysage_Tab_modèles <- CR_Paysage[,c("Parc", "cult", "camp", "NBcica", "NBtord", "NBphyl")]
+
+CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+  filter(camp %in% c(2, 3))
+
+CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+  filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+
+# Conserver la tableau pour calculer le taux d'accroissement camp 2 et 3
+Tab_accroissement_2_3 <- CR_Paysage_Tab_modèles
+
+CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+  select(-cult, -camp)
+
+CR_Paysage_Tab_modèles <- CR_Paysage_Tab_modèles %>%
+  group_by(Parc) %>%
+  summarise(across(where(is.numeric), \(x) sum(x, na.rm = TRUE)))
+
+
+CR_Paysage_Tab_modèles_scaled <- scale(CR_Paysage_Tab_modèles[, c("NBcica", "NBtord", "NBphyl")], center = TRUE, scale = TRUE)
+
+CR_Paysage_Tab_modèles_scaled <- data.frame(Parc = CR_Paysage_Tab_modèles$Parc, NBAll_pests = rowMeans(CR_Paysage_Tab_modèles_scaled))
+
+
+#''''''''''''''''''''''''
+#'  CR_Paysage pour delta camp 2 et 3 pour Cica et Phyl 
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+Tab_accroissement_2_3 <- Tab_accroissement_2_3[,c("Parc", "camp", "NBcica", "NBphyl")] %>%
+  pivot_wider(names_from = camp, values_from = c(NBcica, NBphyl), names_prefix = "camp") %>%
+  mutate(Taux_accroiss_NBcica = log((1 + NBcica_camp3) / (1 + NBcica_camp2)),
+         Taux_accroiss_NBphyl = log((1 + NBphyl_camp3) / (1 + NBphyl_camp2))
+  ) %>%
+  select(Parc, starts_with("Taux_accroiss_"))
+
+
+Tab_accroissement_2_3_scaled <- scale(Tab_accroissement_2_3[, c("Taux_accroiss_NBcica", "Taux_accroiss_NBphyl")], center = TRUE, scale = TRUE)
+
+Tab_accroissement_2_3_scaled <- data.frame(Parc = Tab_accroissement_2_3$Parc, Taux_accroiss_NBAll_pests = rowMeans(Tab_accroissement_2_3_scaled))
+
+
+#''''''''''''''''''''''''
+#'  CR_Paysage pour HSN
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+Tab_HSN <- CR_Paysage[,c("Parc","HSNtot")]
+Tab_HSN <- Tab_HSN %>%
+  distinct(Parc, .keep_all = TRUE)
+Tab_HSN <- Tab_HSN %>%
+  filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
+
+
+#''''''''''''''''''''''''
+#'  Data_composite_2 pour IFT
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+# custom function to implement min max scaling
+minMax <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+#normalise data using custom function
+Data_composite <- data_ACP[,-2]
+
+Data_composite$HSNtot_bin <- minMax(Data_composite$HSNtot)
+Data_composite$HSNtot_bin_inv <- 1 - minMax(Data_composite$HSNtot)
+Data_composite$IFT_Ins_Fon_bin <- minMax(Data_composite$IFT_Ins_Fon)
+Data_composite$Int_ti_bin <- minMax(Data_composite$Int_ti)
+
+Data_composite$Composite <- Data_composite$HSNtot_bin_inv + Data_composite$IFT_Ins_Fon_bin + Data_composite$Int_ti_bin
+
+Data_composite_2 <- Data_composite %>%
+  dplyr::group_by(Parc) %>%
+  dplyr::summarize(across(everything(), mean, na.rm = TRUE))
+
+Data_composite_2_Tab_modèles <- Data_composite_2[,c("Parc", "IFTHer", "IFTIns", "IFTFon")]
+Data_composite_2_Tab_modèles$IFTTot <- Data_composite_2_Tab_modèles$IFTHer + Data_composite_2_Tab_modèles$IFTIns + Data_composite_2_Tab_modèles$IFTFon
+
+
+pHSN <- CR_Paysage[, c("Parc", "HSNtot")] %>%
+  distinct(Parc, HSNtot)
+
+Data_modeles <- pianka_df
+
+# Ajouter la colonne FS
+Data_modeles$FS <- ifelse(
+  substr(Data_modeles$Parc, nchar(Data_modeles$Parc), nchar(Data_modeles$Parc)) == "B",
+  "Bio",
+  "Conv"
+)
+
+Data_modeles <- Data_modeles %>%
+  left_join(tab_pred_shannon_div, by = "Parc")
+
+Data_modeles <- Data_modeles %>%
+  left_join(tab_prey_shannon_div, by = "Parc")
+
+Data_modeles <- Data_modeles %>%
+  left_join(pHSN, by = "Parc")
+
+
+Data_modeles_2 <- Data_modeles %>%
+  left_join(Data_composite_2[,c("Parc", "Composite", "Int_ti", "IFT_Ins_Fon")], by = "Parc")
+
+
+#''''''''''''''''''''''''
+#'  Data_eggs_2 pour Npred
+#''''''''''''''''''''''''
+#''''''''''''''''''''''''
+
+Data_eggs <- subset(Data_eggs, sampling_date == "3" & type == "egg")
+
+Data_eggs <- rename(Data_eggs, Parc = vineyard)
+
+Data_eggs_2 <- Data_eggs %>%
+  dplyr::mutate(across(where(is.character), as.numeric, .names = "numeric_{.col}")) %>%
+  dplyr::group_by(Parc) %>%
+  dplyr::summarize(across(everything(), mean, na.rm = TRUE))
+
+Data_eggs_2_Tab_modèles <- Data_eggs_2[,c("Parc", "Npred")]
+
+
+
+###############
+# metriques de réseau All_species (Nestedness, Connectance, vulnerability and specialization)
+###############
+
+metriques_reseau_All_species_Parc <- final_metriques[rownames(final_metriques) %in% c("vulnerability.LL", "connectance", "nestedness", "specialisation asymmetry"), ]
+
+metriques_reseau_All_species_Parc <- rename(metriques_reseau_All_species_Parc, "1088B" = "1088B_networklevel(interaction_matrix_All_species)",
+                                            "1088C" = "1088C_networklevel(interaction_matrix_All_species)",
+                                            "1435B" = "1435B_networklevel(interaction_matrix_All_species)",
+                                            "1435C" = "1435C_networklevel(interaction_matrix_All_species)",
+                                            "1650B" = "1650B_networklevel(interaction_matrix_All_species)",
+                                            "1650C" = "1650C_networklevel(interaction_matrix_All_species)",
+                                            "1662B" = "1662B_networklevel(interaction_matrix_All_species)",
+                                            "1662C" = "1662C_networklevel(interaction_matrix_All_species)",
+                                            "1868B" = "1868B_networklevel(interaction_matrix_All_species)",
+                                            "1868C" = "1868C_networklevel(interaction_matrix_All_species)",)
+
+
+t_metrics_Parc <- transpose(metriques_reseau_All_species_Parc)
+colnames(t_metrics_Parc) <- rownames(metriques_reseau_All_species_Parc)
+rownames(t_metrics_Parc) <- colnames(metriques_reseau_All_species_Parc)
+
+t_metrics_Parc <- t_metrics_Parc[-11,]
+
+t_metrics_Parc <- t_metrics_Parc %>%
+  tibble::rownames_to_column(var = "Parc")
+
+
+
+###############
+# Ajouter au tableau modèles
+###############
+
+Tab_models <- Tab_models %>%
+  left_join(tab_pred_shannon_div, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(tab_prey_shannon_div, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(CR_Paysage_Tab_modèles, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(CR_Paysage_Tab_modèles_scaled, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(Tab_HSN, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(Data_composite_2_Tab_modèles, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(Data_eggs_2_Tab_modèles, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(Tab_accroissement_2_3, by = "Parc")
+
+Tab_models <- Tab_models %>%
+  left_join(Tab_accroissement_2_3_scaled, by = "Parc")
+
+
+
+
+write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
+            row.names = FALSE)
+
 
 
 ##########
-# ACP métriques réseaux
+# ACP metriques réseaux
 ##########
 
 #scale data
@@ -633,19 +996,19 @@ summary(Mod1b)
 # Mod2a
 #####################    
 
-Mod2a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = prey_shannon_diversity)) +
+Mod2a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Prey_Shannon_Div)) +
   geom_point(aes(color = cult)) +
   geom_text_repel(aes(label = Parc), size = 3) +
   geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
   labs(x = "HSNtot",
-       y = "prey_shannon_diversity") +
+       y = "Prey_Shannon_Div") +
   theme_minimal()        
 Mod2a
 ggsave(filename = "Mod2a.jpeg", plot = Mod2a, width = 11, height = 8)
 
 library(lme4)
 library(lmerTest)
-Mod2a <- lmer(prey_shannon_diversity ~ HSNtot * cult + (1|Site), data = Tableau_model_final)
+Mod2a <- lmer(Prey_Shannon_Div ~ HSNtot * cult + (1|Site), data = Tableau_model_final)
 print(Mod2a)
 summary(Mod2a)
 
@@ -653,17 +1016,17 @@ summary(Mod2a)
 # Mod2b
 ##################### 
 
-Mod2b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = prey_shannon_diversity)) +
+Mod2b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Prey_Shannon_Div)) +
   geom_point(aes(color = IFTTot)) +
   geom_text_repel(aes(label = Parc), size = 3) +
   geom_smooth(method = "lm", se = FALSE, color = "black") +  # Droite du modèle global
   labs(x = "HSNtot",
-       y = "prey_shannon_diversity") +
+       y = "Prey_Shannon_Div") +
   theme_minimal()        
 Mod2b
 ggsave(filename = "Mod2b.jpeg", plot = Mod2b, width = 11, height = 8)
 
-Mod2b <- lmer(prey_shannon_diversity ~ HSNtot + IFTTot + Int_ti + (1|Site), data = Tableau_model_final)
+Mod2b <- lmer(Prey_Shannon_Div ~ HSNtot + IFTTot + Int_ti + (1|Site), data = Tableau_model_final)
 print(Mod2b)
 summary(Mod2b)
 

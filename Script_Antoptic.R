@@ -1110,19 +1110,19 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                   text.rot = 90, col.low="grey", ybig = 1, y.width.high = 0.03, y.width.low = 0.03, bor.col.interaction = NA) # Rotation du texte des labels de 90 degrés
 
       
-          métriques <- as.data.frame(networklevel(interaction_matrix_All_species))
-          print(métriques)         
+          metriques <- as.data.frame(networklevel(interaction_matrix_All_species))
+          print(metriques)         
       
       # La connectance d'un réseau trophique bipartite est une mesure qui indique le nombre réel de connexions existantes par rapport au nombre total possible de connexions entre les deux ensembles d'espèces dans le réseau trophique. 
       # La valeur de la connectance est : 0.66666667.
       
-          métriques$métriques <- rownames(métriques)
+          metriques$metriques <- rownames(metriques)
           
-      # Accéder à la connectance dans les métriques du réseau
+      # Accéder à la connectance dans les metriques du réseau
       # La connectance est définie comme le ratio du nombre réel de connexions dans le réseau au nombre maximal de connexions possibles.
       # Une connectance qui tend vers 1 signifie que chaque espèce du premier groupe interagit avec chaque espèce du deuxième groupe.
       # Cela peut suggérer une forte redondance fonctionnelle, où plusieurs espèces peuvent remplir des rôles similaires.
-          connectance_value <- métriques[métriques$métriques == "connectance", "networklevel(interaction_matrix)"]
+          connectance_value <- metriques[metriques$metriques == "connectance", "networklevel(interaction_matrix)"]
           cat("La valeur de la connectance est :", connectance_value, "\n")
           
       # Basse connectance : Une connectance faible (proche de 0) indique que les interactions sont rares et que chaque espèce a des relations spécialisées avec peu d'autres espèces. Cela peut indiquer une forte spécialisation des interactions et une structure plus fragile aux perturbations.
@@ -1142,7 +1142,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
           
           
           
-          métriques_Dormann_2009 <- c("connectance", "web asymmetry", "links per species", 
+          metriques_Dormann_2009 <- c("connectance", "web asymmetry", "links per species", 
                                       "number of compartments", "cluster coefficient", "extinction.slope.HL", 
                                       "extinction.slope.LL", "mean.number.of.shared.partners.HL", 
                                       "mean.number.of.shared.partners.LL", "togetherness.HL", "togetherness.LL", 
@@ -1150,7 +1150,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                                       "weighted nestedness", "generality.HL", "vulnerability.LL", 
                                       "linkage density", "interaction evenness", "interaction strength asymmetry", 
                                       "niche.overlap.HL", "niche.overlap.LL")
-          table_metriques_Dormann_2009 <- métriques[métriques_Dormann_2009, ]
+          table_metriques_Dormann_2009 <- metriques[metriques_Dormann_2009, ]
           
           
           writexl::write_xlsx(table_metriques_Dormann_2009, "metriques_Dormann_2009.xlsx")
@@ -1182,19 +1182,19 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
               text.rot = 90, col.low="grey", ybig = 1, y.width.high = 0.03, y.width.low = 0.03, bor.col.interaction = NA) # Rotation du texte des labels de 90 degrés
       
       
-      métriques <- as.data.frame(networklevel(interaction_matrix))
-      print(métriques)         
+      metriques <- as.data.frame(networklevel(interaction_matrix))
+      print(metriques)         
       
       # La connectance d'un réseau trophique bipartite est une mesure qui indique le nombre réel de connexions existantes par rapport au nombre total possible de connexions entre les deux ensembles d'espèces dans le réseau trophique. 
       # La valeur de la connectance est : 0.66666667.
       
-      métriques$métriques <- rownames(métriques)
+      metriques$metriques <- rownames(metriques)
       
-      # Accéder à la connectance dans les métriques du réseau
+      # Accéder à la connectance dans les metriques du réseau
       # La connectance est définie comme le ratio du nombre réel de connexions dans le réseau au nombre maximal de connexions possibles.
       # Une connectance qui tend vers 1 signifie que chaque espèce du premier groupe interagit avec chaque espèce du deuxième groupe.
       # Cela peut suggérer une forte redondance fonctionnelle, où plusieurs espèces peuvent remplir des rôles similaires.
-      connectance_value <- métriques[métriques$métriques == "connectance", "networklevel(interaction_matrix)"]
+      connectance_value <- metriques[metriques$metriques == "connectance", "networklevel(interaction_matrix)"]
       cat("La valeur de la connectance est :", connectance_value, "\n")
       
       # Basse connectance : Une connectance faible (proche de 0) indique que les interactions sont rares et que chaque espèce a des relations spécialisées avec peu d'autres espèces. Cela peut indiquer une forte spécialisation des interactions et une structure plus fragile aux perturbations.
@@ -1214,7 +1214,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       
       
-      métriques_Dormann_2009 <- c("connectance", "web asymmetry", "links per species", 
+      metriques_Dormann_2009 <- c("connectance", "web asymmetry", "links per species", 
                                   "number of compartments", "cluster coefficient", "extinction.slope.HL", 
                                   "extinction.slope.LL", "mean.number.of.shared.partners.HL", 
                                   "mean.number.of.shared.partners.LL", "togetherness.HL", "togetherness.LL", 
@@ -1222,7 +1222,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
                                   "weighted nestedness", "generality.HL", "vulnerability.LL", 
                                   "linkage density", "interaction evenness", "interaction strength asymmetry", 
                                   "niche.overlap.HL", "niche.overlap.LL")
-      table_metriques_Dormann_2009 <- métriques[métriques_Dormann_2009, ]
+      table_metriques_Dormann_2009 <- metriques[metriques_Dormann_2009, ]
       
       
       writexl::write_xlsx(table_metriques_Dormann_2009, "metriques_Dormann_2009.xlsx")
@@ -2401,7 +2401,7 @@ tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longp
       
       # Vérifier qu'il y a exactement 2 niveaux de FS pour la parcelle
       if(length(unique(subset_data$FS)) == 2) {
-        # Effectuer un test de Wilcoxon-Mann-Whitney (non paramétrique)
+        # Effectuer un test de Wilcoxon-Mann-Whitney (non parametrique)
         test_result <- wilcox.test(PijComb ~ FS, data = subset_data)
         
         # Stocker le résultat
@@ -3777,8 +3777,8 @@ parc_values <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
 # Générer une palette de couleurs, par exemple avec RColorBrewer (ou d'autres)
 colors <- grDevices::rainbow(length(parc_values))  # Utiliser un ensemble de couleurs distinctes
 
-# Initialiser une liste pour stocker les dataframes de métriques
-list_métriques <- list()
+# Initialiser une liste pour stocker les dataframes de metriques
+list_metriques <- list()
 
 # Boucle pour créer un tableau, une matrice et un graphique pour chaque Parc
 for (i in seq_along(parc_values)) {
@@ -3803,10 +3803,10 @@ for (i in seq_along(parc_values)) {
   # Assigner la matrice à une variable avec ce nom
   assign(var_name, interaction_matrix_All_species)
   
-  # Calculer les métriques de réseau
-  métriques <- as.data.frame(networklevel(interaction_matrix_All_species))
-  # Stocker les métriques dans la liste
-  list_métriques[[parc]] <- métriques
+  # Calculer les metriques de réseau
+  metriques <- as.data.frame(networklevel(interaction_matrix_All_species))
+  # Stocker les metriques dans la liste
+  list_metriques[[parc]] <- metriques
   
   # Paramètres graphiques pour réduire la taille du graphique
   op <- par(mar = c(0.1, 2, 0.1, 2) + 0.1, cex = 0.8)
@@ -3826,14 +3826,14 @@ for (i in seq_along(parc_values)) {
   par(op)
 }
 
-# Combiner tous les dataframes de métriques en un seul dataframe si souhaité
-final_métriques <- do.call(cbind, list_métriques)
+# Combiner tous les dataframes de metriques en un seul dataframe si souhaité
+final_metriques <- do.call(cbind, list_metriques)
 
 # Renommer les colonnes avec le nom de la parcelle suivi d'un underscore
-colnames(final_métriques) <- paste0(parc_values, "_", colnames(final_métriques))
-final_métriques$métriques <- rownames(final_métriques)
+colnames(final_metriques) <- paste0(parc_values, "_", colnames(final_metriques))
+final_metriques$metriques <- rownames(final_metriques)
 
-writexl::write_xlsx(final_métriques, "final_métriques_par_parcelles.xlsx")
+writexl::write_xlsx(final_metriques, "final_metriques_par_parcelles.xlsx")
 
 
 ###################################
@@ -4449,7 +4449,9 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
   #J’ai envie de regarder des histoires de compositions entre niveaux trophiques car on peut supposer que c’est ça qui va plus déterminer le niche overlap (car ça doit embarquer des aspects non trophiques etc…). On pourrait donc tester les hypothèses 2- en regardant comment la composition des prédateurs et/ou des proies affectent l’overlap ; pas hyper clair pour moi comment on fait pr résumer les compositions de communautés avec quelques vecteurs… (NMDS ?) mais on doit pouvoir trouver…
     # On peut peut-être partir sur des indicateurs mesurant les niveaux de dissimilarité fonctionnelle ?
 
-
+    minMax <- function(x) {
+      return((x - min(x)) / (max(x) - min(x)))
+    }
 
 # Calcul Niveau d'infestation tot (valeurs pour Tort, Phyll et Cica entre 0 et 1 respectivement puis somme ente 0 et 3)
     Data_infest <- CR_Paysage
@@ -4518,13 +4520,13 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
             text.rot = 90, ybig = 1, y.width.high = 0.03, y.width.low = 0.03,
             bor.col.interaction = NA)  # Applique la couleur aux labels des proies
     
-    # Calculer les métriques de réseau
-    métriques_pests_all <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
+    # Calculer les metriques de réseau
+    metriques_pests_all <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
     
-    métriques_pests_all$métriques <- rownames(métriques_pests_all)
+    metriques_pests_all$metriques <- rownames(metriques_pests_all)
     
     
-    writexl::write_xlsx(métriques_pests_all, "métriques_all (pests).xlsx")
+    writexl::write_xlsx(metriques_pests_all, "metriques_all (pests).xlsx")
     
     
     library(dplyr)
@@ -4567,8 +4569,8 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     # Générer une palette de couleurs, par exemple avec RColorBrewer (ou d'autres)
     colors <- grDevices::rainbow(length(parc_values))  # Utiliser un ensemble de couleurs distinctes
     
-    # Initialiser une liste pour stocker les dataframes de métriques
-    list_métriques_pests <- list()
+    # Initialiser une liste pour stocker les dataframes de metriques
+    list_metriques_pests <- list()
     
     # Boucle pour créer un tableau, une matrice et un graphique pour chaque Parc
     for (i in seq_along(parc_values)) {
@@ -4587,10 +4589,10 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
       # Trier les lignes par ordre alphabétique des noms de lignes
       interaction_matrix_All_species_pests <- interaction_matrix_All_species_pests[order(rownames(interaction_matrix_All_species_pests)), ]
       
-      # Calculer les métriques de réseau
-      métriques_pests <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
-      # Stocker les métriques dans la liste
-      list_métriques_pests[[parc]] <- métriques_pests
+      # Calculer les metriques de réseau
+      metriques_pests <- as.data.frame(networklevel(interaction_matrix_All_species_pests))
+      # Stocker les metriques dans la liste
+      list_metriques_pests[[parc]] <- metriques_pests
       
       # Paramètres graphiques pour réduire la taille du graphique
       op <- par(mar = c(0.1, 2, 0.1, 2) + 0.1, cex = 0.8)
@@ -4612,14 +4614,14 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
   
     
     
-    # Combiner tous les dataframes de métriques en un seul dataframe si souhaité
-    final_métriques_pests <- do.call(cbind, list_métriques_pests)
+    # Combiner tous les dataframes de metriques en un seul dataframe si souhaité
+    final_metriques_pests <- do.call(cbind, list_metriques_pests)
     
     # Renommer les colonnes avec le nom de la parcelle suivi d'un underscore
-    colnames(final_métriques_pests) <- paste0(parc_values, "_", colnames(final_métriques_pests))
-    final_métriques_pests$métriques <- rownames(final_métriques_pests)
+    colnames(final_metriques_pests) <- paste0(parc_values, "_", colnames(final_metriques_pests))
+    final_metriques_pests$metriques <- rownames(final_metriques_pests)
     
-    writexl::write_xlsx(final_métriques_pests, "final_métriques_par_parcelles (pests Parc).xlsx")
+    writexl::write_xlsx(final_metriques_pests, "final_metriques_par_parcelles (pests Parc).xlsx")
     
     
 
@@ -4933,10 +4935,10 @@ ggplot(Data_modeles_4, aes(x = Pianka_index, y = Pianka_index_preys)) +
     
     
     ###############
-    # Métriques de réseau All_species (Nestedness, Connectance, vulnerability and specialization)
+    # metriques de réseau All_species (Nestedness, Connectance, vulnerability and specialization)
     ###############
     
-    metriques_reseau_All_species_Parc <- final_métriques[rownames(final_métriques) %in% c("vulnerability.LL", "connectance", "nestedness", "specialisation asymmetry"), ]
+    metriques_reseau_All_species_Parc <- final_metriques[rownames(final_metriques) %in% c("vulnerability.LL", "connectance", "nestedness", "specialisation asymmetry"), ]
     
     metriques_reseau_All_species_Parc <- rename(metriques_reseau_All_species_Parc, "1088B" = "1088B_networklevel(interaction_matrix_All_species)",
                                                 "1088C" = "1088C_networklevel(interaction_matrix_All_species)",
