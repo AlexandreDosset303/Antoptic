@@ -1,6 +1,10 @@
+# Chargement de l'espace de travail
 setwd("C:/Users/Alexandre_Dosset/Desktop/Antoptic")
 
-#####Importation des packages#####
+#===============
+# I - Importation des packages ===============
+#===============
+
 library(dplyr)
 library(tidyr)
 library(tibble)
@@ -17,33 +21,33 @@ library(reshape2)
 library(FactoMineR)
 library(factoextra)
 
-#####Importation des donn?es#####
+#===============
+# II - Importation des donnees ===============
+#===============
 
-TAB <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/TAB.txt", header = TRUE, sep = "")
+  # Table des probabilités d'intéractions entre proies et prédateurs (Next-generation sequencing)
 tab_pij2 <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/tab_pij2.txt", header = TRUE, sep = "")
 tab_pij2 <- tab_pij2 %>% dplyr::filter(ReadName != "Malacostraca_Potamidae_Longpotamon") # Retirer une espèce de crustacés qui est un artefact
+    # Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs spécifiques dans "Isp"
+    tab_pij2_All_species <- tab_pij2
+    # Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs "PijComb" > O.O1
+    tab_pij2_All_species_Seuil_1_percent <- tab_pij2_All_species %>% filter(PijComb > 0.01)
+    tab_pij2_All_species_Seuil_1_percent$FS <- substr(tab_pij2_All_species_Seuil_1_percent$Parc, nchar(tab_pij2_All_species_Seuil_1_percent$Parc), nchar(tab_pij2_All_species_Seuil_1_percent$Parc))
+    
+  # Table des pratiques utilisées par parcelles et de description du paysage
 Data_IFT <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/pratiques_paysages_2015.txt", header = TRUE, sep = "")
+  
+  # Table des occurences, fréquences et abondances des ravageurs par parcelles et de description du paysage
 CR_Paysage <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/CR_Paysage.txt", header = TRUE, sep = "")
+
+  # Table des pratiques utilisées par parcelles et de prédation des oeufs sur les cartes de prédation
 Data_eggs <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/data_eggs.txt", header = TRUE, sep = "", fill = TRUE)
 
-#################################
 
-# Filtrer les lignes où la colonne "to_keep" a la valeur "oui"
-TAB_Kept <- TAB %>%
-  filter(to_keep == "oui")
-
-# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs spécifiques dans "Isp"
-TAB_All_species <- TAB_Kept
-# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs spécifiques dans "Isp"
-tab_pij2_All_species <- tab_pij2
-
-# Filtrage du dataframe pour conserver uniquement les lignes avec les valeurs "PijComb" > O.O1
-tab_pij2_All_species_Seuil_1_percent <- tab_pij2_All_species %>% filter(PijComb > 0.01)
-tab_pij2_All_species_Seuil_1_percent$FS <- substr(tab_pij2_All_species_Seuil_1_percent$Parc, nchar(tab_pij2_All_species_Seuil_1_percent$Parc), nchar(tab_pij2_All_species_Seuil_1_percent$Parc))
-
-
-# XII - Fonction pour calculer l'indice de chevauchement de Pianka ===============
+#===============
+# III - Fonction pour calculer l'indice de chevauchement de Pianka ===============
 # https://rdrr.io/cran/EcoSimR/man/pianka.html
+#===============
 
 pianka_index <- function(matrix) {
   species <- nrow(matrix)
@@ -67,6 +71,9 @@ pianka_index <- function(matrix) {
   return(pianka_matrix)
 }
 
+#===============
+# IV - Création de la matrice d'interactions et calcul des métriques du réseau ===============
+#===============
 
 library(dplyr)
 
@@ -91,7 +98,7 @@ for (parc in parc_values) {
 }
 
 
-#------------------------------------------------------------------------
+
 # Liste des tableaux d'interaction
 tableaux_interaction <- list("1088B" = tab_pij2_filtered_1088B, 
                              "1088C" = tab_pij2_filtered_1088C,
@@ -160,7 +167,9 @@ pianka_df <- data.frame(Parc = names(pianka_results),
 print(pianka_df)
 
 
-
+#===============
+# V - Création du jeu de données pour l'ACP ===============
+#===============
 
 Data_IFT <- rename(Data_IFT, Parc = parc)
 Data_IFT$IFT_Ins_Fon <- Data_IFT$IFTIns + Data_IFT$IFTFon
@@ -175,25 +184,25 @@ data_ACP <- merge(data_merged[, c("Parc", "FS", "AC", "AB", "HSNtot", "Pianka_in
                   Data_IFT[, c("Parc", "IFTHer", "IFTIns", "IFTFon", "IFT_Ins_Fon", "surf", "Int_ti")], by = c("Parc"))
 
 
-#############
-#### PCA on environmental data to examine dimensions of land use intensity
-############
+#===============
+# VI - ACP ===============
+#===============
 
 head(data_ACP)
 
 #scale data
 
-dataPCA_Adrien <- data_ACP %>%
+data_ACP_1 <- data_ACP %>%
   select(HSNtot, IFTHer, IFTIns, IFTFon, Int_ti, Pianka_index)
 
-dataPCA_Adrien_2 <- dataPCA_Adrien
-dataPCA_Adrien_2$IFTTot <- dataPCA_Adrien_2$IFTHer + dataPCA_Adrien_2$IFTIns + dataPCA_Adrien_2$IFTFon
+data_ACP_2 <- data_ACP_1
+data_ACP_2$IFTTot <- data_ACP_2$IFTHer + data_ACP_2$IFTIns + data_ACP_2$IFTFon
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   select(HSNtot, IFTTot, Int_ti)
 
 
-dataPCAscale<-scale(dataPCA_Adrien_2) 
+dataPCAscale<-scale(data_ACP_2) 
 
 resPCA<- PCA(dataPCAscale, scale.unit=TRUE)
 
@@ -205,23 +214,24 @@ fviz_eig(resPCA,add.labels=T)
 IFTLUI<-resPCA$ind$coord[,2]
 LandscapeLUI<-resPCA$ind$coord[,1]
 
+
 #add data LUIlocal and Landscape to data
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
-  mutate(dataPCA_Adrien, IFTLUI, LandscapeLUI)
+data_ACP_2 <- data_ACP_2 %>%
+  mutate(data_ACP_1, IFTLUI, LandscapeLUI)
 
-dataPCA_Adrien_2$Parc <- data_ACP$Parc
+data_ACP_2$Parc <- data_ACP$Parc
 
-head(dataPCA_Adrien_2)
+head(data_ACP_2)
 
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   distinct(Parc, .keep_all = TRUE)
 
-################
+#===============
+# VII - Graphs descriptifs (Shannon Div Pred, Predator Abundance, Shannon Div Prey) ===============
+#===============
 
-# Shannon Div Predators
-
-################
+# Calcul de l'indice de diversité de Shannon des prédateurs
 
 Tab_natural_enemies <- read.table("C:/Users/Alexandre_Dosset/Desktop/Antoptic/SOLUTION_data_naturalenemy_landscape_2015.txt", header = TRUE, sep = "\t")
 
@@ -264,18 +274,16 @@ colnames(tab_pred_RS)[2] <- "Predator_Species_Richness"
 tab_pred_RS <- tab_pred_RS %>%
   filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(tab_pred_shannon_div, tab_pred_RS)
 
-ggplot(dataPCA_Adrien_2, aes(x = Predator_Shannon_Div, y = Predator_Species_Richness, color = Parc)) +
+ggplot(data_ACP_2, aes(x = Predator_Shannon_Div, y = Predator_Species_Richness, color = Parc)) +
   geom_point(size = 3) +
   geom_text(aes(label=Parc), vjust = -1, hjust = 0.5, size = 3) +
   labs(x = "Predator_Shannon_Div", y = "Predator_Species_Richness")
 
 
-########
 # Somme abondances totale par parcelles
-########
 
 table_Abondances_totale <- table_pred_abondance %>%
   filter(Parc %in% c("1088B", "1088C", "1435B", "1435C", "1650B", "1650C", "1662B", "1662C", "1868B", "1868C"))
@@ -287,17 +295,16 @@ rowwise()%>%
 table_Abondances_totale <- table_Abondances_totale %>%
   select(Parc, Abondance_tot)
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(table_Abondances_totale)
 
-ggplot(dataPCA_Adrien_2, aes(x = Predator_Shannon_Div, y = Abondance_tot, color = Parc)) +
+ggplot(data_ACP_2, aes(x = Predator_Shannon_Div, y = Abondance_tot, color = Parc)) +
   geom_point(size = 3) +
   geom_text(aes(label=Parc), vjust = -1, hjust = 0.5, size = 3) +
   labs(x = "Predator_Shannon_Div", y = "Abondance_tot")
 
-########
-# Diversité proies (NGS)
-########
+
+# Calcul de l'indice de diversité de Shannon des proies
 
 tab_pij2_All_species_Seuil_1_percent$N <- 1
 #Regrouper les données pour avoir une matrice d'abondance
@@ -314,12 +321,13 @@ tab_prey_shannon_div <- table_prey_abondance %>%
   tibble::rownames_to_column(var = "Parc")
 colnames(tab_prey_shannon_div)[2] <- "Prey_Shannon_Div"
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(tab_prey_shannon_div)
 
-################
-# metriques reseaux par Parc
-################
+
+#===============
+# VIII - Réseaux par Parc et métriques de réseau ===============
+#===============
 
 # Réseaux trophiques par parcelle
 # Extraire les valeurs uniques de la colonne 'Parc'
@@ -410,19 +418,18 @@ t_metrics_Parc <- t_metrics_Parc[-11,]
 t_metrics_Parc <- t_metrics_Parc %>%
   tibble::rownames_to_column(var = "Parc")
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(t_metrics_Parc)
 
 
-ggplot(dataPCA_Adrien_2, aes(x = Pianka_index, y = niche.overlap.LL, color = Parc)) +
+ggplot(data_ACP_2, aes(x = Pianka_index, y = niche.overlap.LL, color = Parc)) +
   geom_point(size = 3) +
   geom_text(aes(label=Parc), vjust = -1, hjust = 0.5, size = 3) +
   labs(x = "Pianka_index", y = "niche.overlap.LL")
 
 
-##############
+
 # indices réseaux à l'échelle des proies d'intérêt
-##############
 
 library(reshape2)
 library(bipartite)
@@ -523,14 +530,13 @@ species_level_df <- do.call(rbind, results_list)
 rownames(species_level_df) <- NULL
 
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(species_level_df)
 
 
-
-###############
-# Tableau modèles
-###############
+#===============
+# XIX - Création du tableau pour les modèles ===============
+#===============
 
 Tab_models <- pianka_df
 Tab_models$cult <- substr(Tab_models$Parc, nchar(Tab_models$Parc), nchar(Tab_models$Parc))
@@ -700,9 +706,9 @@ Data_eggs_2_Tab_modèles <- Data_eggs_2[,c("Parc", "Npred")]
 
 
 
-###############
-# metriques de réseau All_species (Nestedness, Connectance, vulnerability and specialization)
-###############
+#===============
+# XX - Calcul des metriques de réseau par Parc (Nestedness, Connectance, vulnerability and specialization) ===============
+#===============
 
 metriques_reseau_All_species_Parc <- final_metriques[rownames(final_metriques) %in% c("vulnerability.LL", "connectance", "nestedness", "specialisation asymmetry"), ]
 
@@ -727,11 +733,9 @@ t_metrics_Parc <- t_metrics_Parc[-11,]
 t_metrics_Parc <- t_metrics_Parc %>%
   tibble::rownames_to_column(var = "Parc")
 
-
-
-###############
-# Ajouter au tableau modèles
-###############
+#===============
+# XXI - Création du tableau pour les modèles ===============
+#===============
 
 Tab_models <- Tab_models %>%
   left_join(tab_pred_shannon_div, by = "Parc")
@@ -761,19 +765,16 @@ Tab_models <- Tab_models %>%
   left_join(Tab_accroissement_2_3_scaled, by = "Parc")
 
 
-
-
 write.table(Tab_models, file = "Tab_models.txt", sep = "\t",
             row.names = FALSE)
 
 
-
-##########
-# ACP metriques réseaux
-##########
+#===============
+# XXII - ACP sur les métriques réseaux ===============
+#===============
 
 #scale data
-ACP_metriques_reseaux <- dataPCA_Adrien_2 %>%
+ACP_metriques_reseaux <- data_ACP_2 %>%
   #select(Pianka_index, connectance, `modularity Q`, nestedness, niche.overlap.HL, niche.overlap.LL, generality.HL, vulnerability.LL)
 select(Predator_Shannon_Div, Prey_Shannon_Div, HSNtot, IFTTot, Int_ti, IFTLUI, LandscapeLUI,Pianka_index, connectance, `modularity Q`, nestedness, niche.overlap.HL, niche.overlap.LL, generality.HL, vulnerability.LL, H2, mean_degree, mean_effective_partners, mean_species_specificity
        #degree_INS_Phylloxeridae_Daktulosphaira,degree_INS_Cicadellidae_Empoasca, degree_INS_Cicadellidae_Scaphoideus, degree_INS_Tortricidae_Lobesia, effective_partners_INS_Phylloxeridae_Daktulosphaira, effective_partners_INS_Cicadellidae_Empoasca, effective_partners_INS_Cicadellidae_Scaphoideus, effective_partners_INS_Tortricidae_Lobesia
@@ -793,19 +794,23 @@ fviz_eig(resPCA_reseaux,add.labels=T)
 IFTLUI<-resPCA_reseaux$ind$coord[,2]
 LandscapeLUI<-resPCA_reseaux$ind$coord[,1]
 
-dataPCA_Adrien_2 <- dataPCA_Adrien_2 %>%
+data_ACP_2 <- data_ACP_2 %>%
   mutate(Tab_models[,c("Parc", "Npred", "NBcica", "NBtord", "NBphyl", "NBAll_pests", "Taux_accroiss_NBcica", "Taux_accroiss_NBphyl", "Taux_accroiss_NBAll_pests")])
          
-dataPCA_Adrien_2 <- as.data.frame(apply(dataPCA_Adrien_2, 2, as.numeric))
+data_ACP_2 <- as.data.frame(apply(data_ACP_2, 2, as.numeric))
 
 
-ggplot(dataPCA_Adrien_2, aes(x = HSNtot, y = mean_species_specificity)) +
+ggplot(data_ACP_2, aes(x = HSNtot, y = mean_species_specificity)) +
   geom_point(size = 3) +
   geom_smooth(method = "lm")+
   labs(x = "HSNtot", y = "mean_species_specificity")
 
 
-tab_correlation_1 <- dataPCA_Adrien_2 %>%
+#===============
+# XXIII - Matrice de corrélation ===============
+#===============
+
+tab_correlation_1 <- data_ACP_2 %>%
   select(-starts_with("degree"),
          -starts_with("effective"),
          -starts_with("species"),
@@ -861,9 +866,10 @@ pheatmap(
   main = "Dendrogramme + Matrice de corrélation"
 )
 
-#############
-# Modules du réseau par Parc
-#############
+
+#===============
+# (à retravailler) XXIV - Modules du réseau par Parc ===============
+#===============
 
 library(igraph)
 
@@ -921,18 +927,13 @@ modularites_df <- data.frame(
 print(modularites_df)
 
 
+#===============
+# XXV - Nouveaux modèles 23_04_2025 ===============
+#===============
 
-#####################
-
-# Nouveaux modèles 23_04_2025
-
-#####################
-
-library(dplyr)
-
-dataPCA_Adrien_2$Parc <- Tab_models$Parc
+data_ACP_2$Parc <- Tab_models$Parc
 # On commence par enlever de df2 les colonnes qui sont déjà dans df1, sauf 'Parc'
-df2_filtered <- dataPCA_Adrien_2 %>% select(-any_of(setdiff(intersect(names(Tab_models), names(dataPCA_Adrien_2)), "Parc")))
+df2_filtered <- data_ACP_2 %>% select(-any_of(setdiff(intersect(names(Tab_models), names(data_ACP_2)), "Parc")))
 
 
 # Puis on fait un left_join pour ajouter les colonnes uniques de df2 à df1, en faisant correspondre 'Parc'
@@ -943,9 +944,6 @@ Tableau_model_final$Site <- substr(Tableau_model_final$Parc, 1, nchar(Tableau_mo
 Tableau_model_final$Site <- as.factor(Tableau_model_final$Site)
 
 
-########
-# Modèles
-########
 
 #M1a: Predator diversity ~ HSN * AB + (1|site)
 #M1b: Predator diversity ~ HSN * IFTTot + (1|site)
@@ -953,9 +951,11 @@ Tableau_model_final$Site <- as.factor(Tableau_model_final$Site)
 #M2b:Prey diversity ~ HSN + IFTTot + (1|site)
 
 
-#####################
+#===============
+# Diversité des prédateurs en fonction de la diversité des habitats et des pratiques agricoles
+#===============
 # Mod1a
-#####################    
+
 
 Mod1a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Pred_Shannon_diversity)) +
   geom_point(aes(color = cult)) +
@@ -973,9 +973,9 @@ Mod1a <- lmer(Pred_Shannon_diversity ~ HSNtot * cult + (1|Site), data = Tableau_
 print(Mod1a)
 summary(Mod1a)
 
-#####################
+
 # Mod1b
-##################### 
+
 
 Mod1b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Pred_Shannon_diversity)) +
   geom_point(aes(color = IFTTot)) +
@@ -992,9 +992,11 @@ print(Mod1b)
 summary(Mod1b)
 
 
-#####################
+#===============
+# Diversité des proies en fonction de la diversité des habitats et des pratiques agricoles
+#===============
 # Mod2a
-#####################    
+
 
 Mod2a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Prey_Shannon_Div)) +
   geom_point(aes(color = cult)) +
@@ -1012,9 +1014,9 @@ Mod2a <- lmer(Prey_Shannon_Div ~ HSNtot * cult + (1|Site), data = Tableau_model_
 print(Mod2a)
 summary(Mod2a)
 
-#####################
+
 # Mod2b
-##################### 
+
 
 Mod2b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Prey_Shannon_Div)) +
   geom_point(aes(color = IFTTot)) +
@@ -1032,9 +1034,11 @@ summary(Mod2b)
 
 
 
-#####################
+#===============
+# Chevauchement de niches des prédateurs selon l’environnement et les intrants
+#===============
 # Mod3a
-#####################    
+   
 
 Mod3a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = niche.overlap.HL)) +
   geom_point(aes(color = cult)) +
@@ -1052,9 +1056,9 @@ Mod3a <- lmer(niche.overlap.HL ~ HSNtot * cult + (1|Site), data = Tableau_model_
 print(Mod3a)
 summary(Mod3a)
 
-#####################
+
 # Mod3b
-##################### 
+
 
 Mod3b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = niche.overlap.HL)) +
   geom_point(aes(color = IFTTot)) +
@@ -1071,9 +1075,9 @@ print(Mod3b)
 summary(Mod3b)
 
 
-#####################
+
 # Mod4a
-#####################    
+   
 
 Mod4a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Pianka_index)) +
   geom_point(aes(color = cult)) +
@@ -1091,9 +1095,9 @@ Mod4a <- lmer(Pianka_index ~ HSNtot * cult + (1|Site), data = Tableau_model_fina
 print(Mod4a)
 summary(Mod4a)
 
-#####################
+
 # Mod4b
-##################### 
+
 
 Mod4b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Pianka_index)) +
   geom_point(aes(color = IFTTot)) +
@@ -1111,9 +1115,13 @@ summary(Mod4b)
 
 
 
-#####################
+#===============
+# Propriétés du réseau
+#===============
+
+# Vulnerabilité des proies
 # Mod5a
-#####################    
+   
 
 Mod5a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = vulnerability.LL)) +
   geom_point(aes(color = cult)) +
@@ -1131,9 +1139,9 @@ Mod5a <- lmer(vulnerability.LL ~ HSNtot * cult + (1|Site), data = Tableau_model_
 print(Mod5a)
 summary(Mod5a)
 
-#####################
+
 # Mod5b
-##################### 
+
 
 Mod5b <- ggplot(Tableau_model_final, aes(x = IFTTot, y = vulnerability.LL)) +
   geom_point(aes(color = IFTTot)) +
@@ -1150,9 +1158,10 @@ print(Mod5b)
 summary(Mod5b)
 
 
-#####################
+# Généralité des prédateurs
+
 # Mod6a
-#####################    
+   
 
 Mod6a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = generality.HL)) +
   geom_point(aes(color = cult)) +
@@ -1170,9 +1179,9 @@ Mod6a <- lmer(generality.HL ~ HSNtot * cult + (1|Site), data = Tableau_model_fin
 print(Mod6a)
 summary(Mod6a)
 
-#####################
+
 # Mod6b
-##################### 
+
 
 Mod6b <- ggplot(Tableau_model_final, aes(x = IFTTot, y = generality.HL)) +
   geom_point(aes(color = IFTTot)) +
@@ -1189,9 +1198,10 @@ print(Mod6b)
 summary(Mod6b)
 
 
-#####################
+# Modularité du réseau
+
 # Mod7a
-#####################    
+   
 
 Mod7a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = `modularity Q`)) +
   geom_point(aes(color = cult)) +
@@ -1209,9 +1219,9 @@ Mod7a <- lmer(`modularity Q` ~ HSNtot * cult + (1|Site), data = Tableau_model_fi
 print(Mod7a)
 summary(Mod7a)
 
-#####################
+
 # Mod7b
-##################### 
+
 
 Mod7b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = `modularity Q`)) +
   geom_point(aes(color = IFTTot)) +
@@ -1228,9 +1238,9 @@ print(Mod7b)
 summary(Mod7b)
 
 
-#####################
+# Specialisation
 # Mod8a
-#####################    
+   
 
 Mod8a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = H2)) +
   geom_point(aes(color = cult)) +
@@ -1248,9 +1258,9 @@ Mod8a <- lmer(H2 ~ HSNtot * cult + (1|Site), data = Tableau_model_final)
 print(Mod8a)
 summary(Mod8a)
 
-#####################
+
 # Mod8b
-##################### 
+
 
 Mod8b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = H2)) +
   geom_point(aes(color = IFTTot)) +
@@ -1267,9 +1277,9 @@ print(Mod8b)
 summary(Mod8b)
 
 
-#####################
+
 # Mod9a
-#####################    
+   
 
 Mod9a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_degree)) +
   geom_point(aes(color = cult)) +
@@ -1287,9 +1297,9 @@ Mod9a <- lmer(mean_degree ~ HSNtot * cult + (1|Site), data = Tableau_model_final
 print(Mod9a)
 summary(Mod9a)
 
-#####################
+
 # Mod9b
-##################### 
+
 
 Mod9b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_degree)) +
   geom_point(aes(color = IFTTot)) +
@@ -1306,9 +1316,9 @@ print(Mod9b)
 summary(Mod9b)
 
 
-#####################
+
 # Mod10a
-#####################    
+   
 
 Mod10a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_species_specificity)) +
   geom_point(aes(color = cult)) +
@@ -1326,9 +1336,9 @@ Mod10a <- lmer(mean_species_specificity ~ HSNtot * cult + (1|Site), data = Table
 print(Mod10a)
 summary(Mod10a)
 
-#####################
+
 # Mod10b
-##################### 
+
 
 Mod10b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_effective_partners)) +
   geom_point(aes(color = IFTTot)) +
@@ -1345,9 +1355,9 @@ print(Mod10b)
 summary(Mod10b)
 
 
-#####################
+
 # Mod11a
-#####################    
+   
 
 Mod11a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_species_specificity)) +
   geom_point(aes(color = cult)) +
@@ -1365,9 +1375,9 @@ Mod11a <- lmer(mean_species_specificity ~ HSNtot * cult + (1|Site), data = Table
 print(Mod11a)
 summary(Mod11a)
 
-#####################
+
 # Mod11b
-##################### 
+
 
 Mod11b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = mean_species_specificity)) +
   geom_point(aes(color = IFTTot)) +
@@ -1384,9 +1394,11 @@ print(Mod11b)
 summary(Mod11b)
 
 
-#####################
+#===============
+# Abondance des ravageurs (Cica, Phyl)
+#===============
 # Mod12a
-#####################    
+   
 
 Mod12a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1404,9 +1416,9 @@ Mod12a <- lmer(NBAll_pests ~ HSNtot * cult + (1|Site), data = Tableau_model_fina
 print(Mod12a)
 summary(Mod12a)
 
-#####################
+
 # Mod12b
-##################### 
+
 
 Mod12b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBAll_pests)) +
   geom_point(aes(color = IFTTot)) +
@@ -1423,9 +1435,8 @@ print(Mod12b)
 summary(Mod12b)
 
 
-#####################
 # Mod13a
-#####################    
+   
 
 Mod13a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBcica)) +
   geom_point(aes(color = cult)) +
@@ -1443,9 +1454,9 @@ Mod13a <- lmer(NBcica ~ HSNtot * cult + (1|Site), data = Tableau_model_final)
 print(Mod13a)
 summary(Mod13a)
 
-#####################
+
 # Mod13b
-##################### 
+
 
 Mod13b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBcica)) +
   geom_point(aes(color = IFTTot)) +
@@ -1462,9 +1473,9 @@ print(Mod13b)
 summary(Mod13b)
 
 
-#####################
+
 # Mod14a
-#####################    
+   
 
 Mod14a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBphyl)) +
   geom_point(aes(color = cult)) +
@@ -1482,9 +1493,9 @@ Mod14a <- lmer(NBphyl ~ HSNtot * cult + (1|Site), data = Tableau_model_final)
 print(Mod14a)
 summary(Mod14a)
 
-#####################
+
 # Mod14b
-##################### 
+
 
 Mod14b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = NBphyl)) +
   geom_point(aes(color = IFTTot)) +
@@ -1501,9 +1512,11 @@ print(Mod14b)
 summary(Mod14b)
 
 
-#####################
+#===============
+# Taux d'accroissement des ravageurs (Cica, Tord, Phyl)
+#===============
 # Mod15a
-#####################    
+   
 
 Mod15a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1521,9 +1534,9 @@ Mod15a <- lmer(Taux_accroiss_NBAll_pests ~ HSNtot * cult + (1|Site), data = Tabl
 print(Mod15a)
 summary(Mod15a)
 
-#####################
+
 # Mod15b
-##################### 
+
 
 Mod15b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = IFTTot)) +
@@ -1540,9 +1553,9 @@ print(Mod15b)
 summary(Mod15b)
 
 
-#####################
+
 # Mod16a
-#####################    
+   
 
 Mod16a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Taux_accroiss_NBcica)) +
   geom_point(aes(color = cult)) +
@@ -1560,9 +1573,9 @@ Mod16a <- lmer(Taux_accroiss_NBcica ~ HSNtot * cult + (1|Site), data = Tableau_m
 print(Mod16a)
 summary(Mod16a)
 
-#####################
+
 # Mod16b
-##################### 
+
 
 Mod16b <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Taux_accroiss_NBcica)) +
   geom_point(aes(color = IFTTot)) +
@@ -1578,9 +1591,9 @@ Mod16b <- lmer(Taux_accroiss_NBcica ~ HSNtot + IFTTot + Int_ti + (1|Site), data 
 print(Mod16b)
 summary(Mod16b)
 
-#####################
+
 # Mod17a
-#####################    
+   
 
 Mod17a <- ggplot(Tableau_model_final, aes(x = HSNtot, y = Taux_accroiss_NBphyl)) +
   geom_point(aes(color = cult)) +
@@ -1598,9 +1611,9 @@ Mod17a <- lmer(Taux_accroiss_NBphyl ~ HSNtot * cult + (1|Site), data = Tableau_m
 print(Mod17a)
 summary(Mod17a)
 
-#####################
+
 # Mod17b
-##################### 
+
 
 Mod17b <- ggplot(Tableau_model_final, aes(x = IFTTot, y = Taux_accroiss_NBphyl)) +
   geom_text_repel(aes(label = Parc), size = 3) +
@@ -1615,10 +1628,14 @@ Mod17b <- lmer(Taux_accroiss_NBphyl ~ HSNtot + IFTTot + Int_ti + (1|Site), data 
 print(Mod17b)
 summary(Mod17b)
 
-
-#####################
+#===============
+### Relationships between communities and trophic network metrics
+#===============
+#===============
+# Diversité des proies et structure du réseau
+#===============
 # Mod18a
-#####################    
+   
 
 Mod18a <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = niche.overlap.HL)) +
   geom_point(aes(color = cult)) +
@@ -1637,9 +1654,9 @@ print(Mod18a)
 summary(Mod18a)
 
 
-#####################
+
 # Mod18b
-#####################    
+   
 
 Mod18b <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = Pianka_index)) +
   geom_point(aes(color = cult)) +
@@ -1659,9 +1676,9 @@ summary(Mod18b)
 
 
 
-#####################
+
 # Mod18c
-#####################    
+   
 
 Mod18c <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = vulnerability.LL)) +
   geom_point(aes(color = cult)) +
@@ -1679,9 +1696,9 @@ Mod18c <- lmer(vulnerability.LL ~ Prey_Shannon_Div + Pred_Shannon_diversity + (1
 print(Mod18c)
 summary(Mod18c)
 
-#####################
+
 # Mod18d
-#####################    
+   
 
 Mod18d <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = generality.HL)) +
   geom_point(aes(color = cult)) +
@@ -1698,9 +1715,9 @@ print(Mod18d)
 summary(Mod18d)
 
 
-#####################
+
 # Mod19a
-#####################    
+   
 
 Mod19a <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = `modularity Q`)) +
   geom_point(aes(color = cult)) +
@@ -1717,9 +1734,9 @@ print(Mod19a)
 summary(Mod19a)
 
 
-#####################
+
 # Mod19b
-#####################    
+   
 
 Mod19b <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = H2)) +
   geom_point(aes(color = cult)) +
@@ -1736,9 +1753,9 @@ print(Mod19b)
 summary(Mod19b)
 
 
-#####################
+
 # Mod20a
-#####################    
+   
 
 Mod20a <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = mean_degree)) +
   geom_point(aes(color = cult)) +
@@ -1754,9 +1771,9 @@ Mod20a <- lmer(mean_degree ~ Prey_Shannon_Div + Pred_Shannon_diversity + (1|Site
 print(Mod20a)
 summary(Mod20a)
 
-#####################
+
 # Mod20b
-#####################    
+   
 
 Mod20b <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = mean_effective_partners)) +
   geom_point(aes(color = cult)) +
@@ -1773,9 +1790,9 @@ print(Mod20b)
 summary(Mod20b)
 
 
-#####################
+
 # Mod20c
-#####################    
+   
 
 Mod20c <- ggplot(Tableau_model_final, aes(x = Prey_Shannon_Div, y = mean_species_specificity)) +
   geom_point(aes(color = cult)) +
@@ -1792,9 +1809,14 @@ print(Mod20c)
 summary(Mod20c)
 
 
-#####################
+#===============
+### Relationships between communities and trophic network metrics
+#===============
+#===============
+# Ravageurs et structure du réseau
+#===============
 # Mod21a
-#####################    
+   
 
 Mod21a <- ggplot(Tableau_model_final, aes(x = niche.overlap.HL, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1811,9 +1833,9 @@ print(Mod21a)
 summary(Mod21a)
 
 
-#####################
+
 # Mod21b
-#####################    
+   
 
 Mod21b <- ggplot(Tableau_model_final, aes(x = niche.overlap.HL, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1830,9 +1852,9 @@ print(Mod21b)
 summary(Mod21b)
 
 
-#####################
+
 # Mod22a
-#####################    
+   
 
 Mod22a <- ggplot(Tableau_model_final, aes(x = Pianka_index, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1849,9 +1871,9 @@ print(Mod22a)
 summary(Mod22a)
 
 
-#####################
+
 # Mod22b
-#####################    
+   
 
 Mod22b <- ggplot(Tableau_model_final, aes(x = Pianka_index, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1868,9 +1890,9 @@ print(Mod22b)
 summary(Mod22b)
 
 
-#####################
+
 # Mod23a
-#####################    
+   
 
 Mod23a <- ggplot(Tableau_model_final, aes(x = vulnerability.LL, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1887,9 +1909,9 @@ print(Mod23a)
 summary(Mod23a)
 
 
-#####################
+
 # Mod23b
-#####################    
+   
 
 Mod23b <- ggplot(Tableau_model_final, aes(x = vulnerability.LL, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1906,9 +1928,9 @@ print(Mod23b)
 summary(Mod23b)
 
 
-#####################
+
 # Mod24a
-#####################    
+   
 
 Mod24a <- ggplot(Tableau_model_final, aes(x = generality.HL, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1925,9 +1947,9 @@ print(Mod24a)
 summary(Mod24a)
 
 
-#####################
+
 # Mod24b
-#####################    
+   
 
 Mod24b <- ggplot(Tableau_model_final, aes(x = generality.HL, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1944,9 +1966,9 @@ print(Mod24b)
 summary(Mod24b)
 
 
-#####################
+
 # Mod25a
-#####################    
+   
 
 Mod25a <- ggplot(Tableau_model_final, aes(x = `modularity Q`, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1963,9 +1985,9 @@ print(Mod25a)
 summary(Mod25a)
 
 
-#####################
+
 # Mod25b
-#####################    
+   
 
 Mod25b <- ggplot(Tableau_model_final, aes(x = `modularity Q`, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -1982,9 +2004,9 @@ print(Mod25b)
 summary(Mod25b)
 
 
-#####################
+
 # Mod26a
-#####################    
+   
 
 Mod26a <- ggplot(Tableau_model_final, aes(x = H2, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2001,9 +2023,9 @@ print(Mod26a)
 summary(Mod26a)
 
 
-#####################
+
 # Mod26b
-#####################    
+   
 
 Mod26b <- ggplot(Tableau_model_final, aes(x = H2, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2019,9 +2041,9 @@ Mod26b <- lmer(Taux_accroiss_NBAll_pests ~ H2 + (1|Site), data = Tableau_model_f
 print(Mod26b)
 summary(Mod26b)
 
-#####################
+
 # Mod27a
-#####################    
+   
 
 Mod27a <- ggplot(Tableau_model_final, aes(x = mean_degree, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2038,9 +2060,9 @@ print(Mod27a)
 summary(Mod27a)
 
 
-#####################
+
 # Mod27b
-#####################    
+   
 
 Mod27b <- ggplot(Tableau_model_final, aes(x = mean_degree, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2057,9 +2079,9 @@ print(Mod27b)
 summary(Mod27b)
 
 
-#####################
+
 # Mod28a
-#####################    
+   
 
 Mod28a <- ggplot(Tableau_model_final, aes(x = mean_effective_partners, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2076,9 +2098,9 @@ print(Mod28a)
 summary(Mod28a)
 
 
-#####################
+
 # Mod28b
-#####################    
+   
 
 Mod28b <- ggplot(Tableau_model_final, aes(x = mean_effective_partners, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2095,9 +2117,9 @@ print(Mod28b)
 summary(Mod28b)
 
 
-#####################
+
 # Mod29a
-#####################    
+   
 
 Mod29a <- ggplot(Tableau_model_final, aes(x = mean_species_specificity, y = NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2114,9 +2136,9 @@ print(Mod29a)
 summary(Mod29a)
 
 
-#####################
+
 # Mod29b
-#####################    
+   
 
 Mod29b <- ggplot(Tableau_model_final, aes(x = mean_species_specificity, y = Taux_accroiss_NBAll_pests)) +
   geom_point(aes(color = cult)) +
@@ -2133,8 +2155,88 @@ print(Mod29b)
 summary(Mod29b)
 
 
-######
-# Analyses multivariées
-######
-vegan::rda()
-ade4::
+#===============
+# XXVI - Analyses multivariées ===============
+#===============
+
+library(vegan)
+rda_test <- vegan::rda(Y ~ var1 + var2 + Condition(Site), data = X)
+summary(rda_test)
+anova(rda_test)
+
+
+
+#===============
+# XXVII - Diagramme du meta-réseau ===============
+#===============
+library(migest)
+library(circlize)
+circos.clear()
+
+group_colors <- c(
+  "INS_Tortricidae_Lobesia" = "red",
+  "INS_Cicadellidae_Empoasca" = "#377EB8",
+  "INS_Cicadellidae_Scaphoideus" = "#4DAF4A",
+  "INS_Phylloxeridae_Daktulosphaira" = "#984EA3"
+)
+
+
+Tab_reseau_All_species <- tab_pij2_All_species_Seuil_1_percent %>%
+  select(ReadName, Isp, PijComb)
+
+colnames(Tab_reseau_All_species) <- c("prey", "predator", "Interaction_probability")
+
+
+
+all_sectors <- union(Tab_reseau_All_species$prey, Tab_reseau_All_species$predator)
+
+grid.col <- setNames(rep("grey80", length(all_sectors)), all_sectors)
+grid.col[names(group_colors)] <- group_colors
+
+link_colors <- rep("grey80", nrow(Tab_reseau_All_species))  # Gris par défaut
+# Appliquer une couleur spécifique pour certaines interactions
+link_colors[Tab_reseau_All_species$prey %in% group_to_cluster] <- "red"  # Exemple pour une catégorie spécifique
+link_colors[Tab_reseau_All_species$predator %in% group_to_cluster] <- "red"  # Exemple pour les prédateurs spécifiques
+
+
+
+group_to_cluster <- c(
+  "INS_Tortricidae_Lobesia",
+  "INS_Cicadellidae_Empoasca",
+  "INS_Cicadellidae_Scaphoideus",
+  "INS_Phylloxeridae_Daktulosphaira"
+)
+
+ordered_sectors <- c(
+  group_to_cluster,
+  setdiff(all_sectors, group_to_cluster)
+)
+
+
+# Graph
+chordDiagram(
+  Tab_reseau_All_species,
+  grid.col = grid.col,
+  annotationTrack = "grid",
+  preAllocateTracks = list(
+    track.height = max(strwidth(unlist(dimnames(Tab_reseau_All_species))))
+  ), order = ordered_sectors, transparency = 0.50
+)
+
+circos.track(
+  track.index = 1,
+  panel.fun = function(x, y) {
+    circos.text(
+      x = CELL_META$xcenter,
+      y = CELL_META$ylim[1],
+      labels = CELL_META$sector.index,
+      facing = "clockwise",
+      niceFacing = TRUE,
+      adj = c(0, 0.5),
+      cex = 0.8
+    )
+  },
+  bg.border = NA  # pas de bordure autour du track
+)
+
+
