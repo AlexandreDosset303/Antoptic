@@ -2122,17 +2122,15 @@ Mod29b <- lmer(Taux_accroiss_NBAll_pests ~ mean_species_specificity + (1|Site), 
 print(Mod29b)
 summary(Mod29b)
 
-#' ---
-#' title: "RDA_Output_Antoptic"
-#' output: html_document
-#' ---
+
+
 #===============
 # XXVI - Analyses multivariées ===============
 #===============
 
 library(vegan)
 
-#' Load data
+# Load data
 
 # Set up for the RDA
 Tableau_model_final <- Tableau_model_final %>%
@@ -2183,26 +2181,26 @@ formule_rda <- as.formula(paste(
   "+ Condition(Site)"
 ))
 
-#' Perform RDA
+# Perform RDA
 
 RDA_1_formula <- vegan::rda(formule_rda, data = df_all)
 
-#' Summary of RDA
+# Summary of RDA
 
 summary(RDA_1_formula) # First axis explains the majority of the variance => the one to look at for interpretation
-  #NBphyl is strongly related to RDA1 (explanatory variables)
-  #Int_ti strongly positively correlated to RDA1
-  #IFTtot negatively correlated to RDA1
-  #cult has a strong effect on RDA1
-  #Parc 1650B is positive in RDA1 => positively influenced by Int_ti (tillage intensity)
-  #Parc 1650C is the opposite because it is the opposite FS
+#NBphyl is strongly related to RDA1 (explanatory variables)
+#Int_ti strongly positively correlated to RDA1
+#IFTtot negatively correlated to RDA1
+#cult has a strong effect on RDA1
+#Parc 1650B is positive in RDA1 => positively influenced by Int_ti (tillage intensity)
+#Parc 1650C is the opposite because it is the opposite FS
   
 
-#' ANOVA tests
+# ANOVA tests
 
 # Significance tests
 anova.cca(RDA_1_formula)
-  #Residual Df very low => low statistical power
+# Residual Df very low => low statistical power
 anova.cca(RDA_1_formula, by = "axis") # by axis
 anova.cca(RDA_1_formula, by = "terms") # by variables
 
@@ -2210,33 +2208,26 @@ anova.cca(RDA_1_formula, permutations = 999, by = "term")
 anova.cca(RDA_1_formula, permutations = 999, by = "margin")
 
 # Colinearity
-sqrt(vif.cca(RDA_1_formula)) # if >2 multicollinearity is considered high.
+sqrt(vif.cca(RDA_1_formula))# if >2 multicollinearity is considered high.
 # Extreme colinearity between sites
 vif.cca(RDA_1_formula) # Les variables sont très colinéaires entre elles
 
 # On a peut-être trop peu d'observations par rapport au nombre de sites
-
-#' Adjusted R²
 
 # R2
 R2 <- RsquareAdj(RDA_1_formula)
 R2$r.squared
 R2$adj.r.squared
 
-#' Scores
-
 # Scores
 scores(RDA_1_formula, display = "sites") # Sites scores
 scores(RDA_1_formula, display = "species") # Y variables scores
 scores(RDA_1_formula, display = "bp") # Explanatory variables scores (biplot arrows)
 
-#' Eigen values
-
 # Eigen values
 eigenvals(RDA_1_formula)
 RDA_1_formula$CCA$eig
 
-#' Graphs
 
 # Graphs
 plot(RDA_1_formula, scaling = 1) # Scaling 1 shows similarities between objects in the response matrix.
@@ -2246,19 +2237,13 @@ vegan::ordilabel(RDA_1_formula, display = "species", cex = 0.7)
 
 vegan::ordiplot(RDA_1_formula, display = "sites", type = "text", scaling = 2)
 
-#' Complementary analysis of variance partitionning
-
 # Complementary analysis of variance partitionning
 varpart(Y_centered_red, X_centered_red, Z)
-
-#' Remarks
 
 # Remarks :
 # - Few residual degrees of freedom => low statistical power
 # - High multicollinearity possible among explanatory variables
 # - Possibly too few observations compared to the number of sites ?
-
-knitr::spin("your_script.R", knit = TRUE)
 
 
 #===============
