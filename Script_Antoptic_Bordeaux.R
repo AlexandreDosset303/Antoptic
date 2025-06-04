@@ -836,7 +836,7 @@ pheatmap(
 
 
 #===============
-# (à retravailler) XXIV - Modules du réseau par Parc ===============
+# XXIV - Modules du réseau par Parc ===============
 #===============
 
 library(igraph)
@@ -2122,12 +2122,17 @@ Mod29b <- lmer(Taux_accroiss_NBAll_pests ~ mean_species_specificity + (1|Site), 
 print(Mod29b)
 summary(Mod29b)
 
-
+#' ---
+#' title: "RDA_Output_Antoptic"
+#' output: html_document
+#' ---
 #===============
 # XXVI - Analyses multivariées ===============
 #===============
 
 library(vegan)
+
+#' Load data
 
 # Set up for the RDA
 Tableau_model_final <- Tableau_model_final %>%
@@ -2178,10 +2183,12 @@ formule_rda <- as.formula(paste(
   "+ Condition(Site)"
 ))
 
+#' Perform RDA
+
 RDA_1_formula <- vegan::rda(formule_rda, data = df_all)
 
+#' Summary of RDA
 
-# Results of the RDA
 summary(RDA_1_formula) # First axis explains the majority of the variance => the one to look at for interpretation
   #NBphyl is strongly related to RDA1 (explanatory variables)
   #Int_ti strongly positively correlated to RDA1
@@ -2191,53 +2198,67 @@ summary(RDA_1_formula) # First axis explains the majority of the variance => the
   #Parc 1650C is the opposite because it is the opposite FS
   
 
+#' ANOVA tests
 
+# Significance tests
 anova.cca(RDA_1_formula)
   #Residual Df very low => low statistical power
-anova.cca(RDA_1_formula, by = "axis")
-anova.cca(RDA_1_formula, by = "terms")
+anova.cca(RDA_1_formula, by = "axis") # by axis
+anova.cca(RDA_1_formula, by = "terms") # by variables
 
+anova.cca(RDA_1_formula, permutations = 999, by = "term")
+anova.cca(RDA_1_formula, permutations = 999, by = "margin")
+
+# Colinearity
+sqrt(vif.cca(RDA_1_formula)) # if >2 multicollinearity is considered high.
+# Extreme colinearity between sites
+vif.cca(RDA_1_formula) # Les variables sont très colinéaires entre elles
+
+# On a peut-être trop peu d'observations par rapport au nombre de sites
+
+#' Adjusted R²
+
+# R2
+R2 <- RsquareAdj(RDA_1_formula)
+R2$r.squared
+R2$adj.r.squared
+
+#' Scores
+
+# Scores
+scores(RDA_1_formula, display = "sites") # Sites scores
+scores(RDA_1_formula, display = "species") # Y variables scores
+scores(RDA_1_formula, display = "bp") # Explanatory variables scores (biplot arrows)
+
+#' Eigen values
+
+# Eigen values
+eigenvals(RDA_1_formula)
+RDA_1_formula$CCA$eig
+
+#' Graphs
+
+# Graphs
 plot(RDA_1_formula, scaling = 1) # Scaling 1 shows similarities between objects in the response matrix.
 plot(RDA_1_formula, scaling = 2) # Scaling 2 shows the effects of explanatory variables.
 
 vegan::ordilabel(RDA_1_formula, display = "species", cex = 0.7)
 
-R2 <- RsquareAdj(RDA_1_formula)
-R2$r.squared
-R2$adj.r.squared
-
-scores(RDA_1_formula, display = "sites") # Sites scores
-scores(RDA_1_formula, display = "species") # Y variables scores
-scores(RDA_1_formula, display = "bp") # Explanatory variables scores (biplot arrows)
-
-#RDA_1 <- vegan::rda(Y_centered_red, X_centered_red, Z)
-
-
-eigenvals(RDA_1_formula)
-RDA_1_formula$CCA$eig
-
 vegan::ordiplot(RDA_1_formula, display = "sites", type = "text", scaling = 2)
 
+#' Complementary analysis of variance partitionning
 
-# Test de permutation
-
-vegan::anova.cca(RDA_1_formula, permutations = 999)
-vegan::anova.cca(RDA_1_formula)
-
-sqrt(vif.cca(RDA_1_formula)) # if >2 multicollinearity is considered high.
-# Extreme colinearity between sites
-
-
-vegan::anova.cca(RDA_1_formula, permutations = 999, by = "term")
-
-vegan::anova.cca(RDA_1_formula, permutations = 999, by = "margin")
+# Complementary analysis of variance partitionning
 varpart(Y_centered_red, X_centered_red, Z)
 
-vif.cca(RDA_1_formula) # Les variables sont très colinéaires entre elles
+#' Remarks
 
-# On a peut-être trop peu d'observations par rapport au nombre de sites
+# Remarks :
+# - Few residual degrees of freedom => low statistical power
+# - High multicollinearity possible among explanatory variables
+# - Possibly too few observations compared to the number of sites ?
 
-
+knitr::spin("your_script.R", knit = TRUE)
 
 
 #===============
@@ -2653,66 +2674,128 @@ missing_species <- setdiff(All_species, All_species_Pests) # 3 of 52 predator sp
 common_species <- intersect(All_species, All_species_Pests)
 
 
-
-###########################
-
-
-# ChordDiagram for each unique Parc
+#===============
+# XXVIII - Diagrammes des réseaux par Parc ===============
+#===============
 
 # Create Folder
 dir.create("ChordDiagrams_byParc", showWarnings = FALSE)
 
-# Unique Parc values
-parcelles <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
-
-resultats_par_parc <- list()
+# Parc list
+liste_parcelles <- unique(tab_pij2_All_species_Seuil_1_percent$Parc)
 
 
-# Loop for each Parc
-for (parcelle in parcelles) {
-  
-  circos.clear()
-  
-  Tab_reseau <- tab_pij2_All_species_Seuil_1_percent %>%
+for (parcelle in liste_parcelles) {
+
+  # Filter data for each Parc
+  Tab_reseau_All_species_Parc <- tab_pij2_All_species_Seuil_1_percent %>%
     filter(Parc == parcelle) %>%
-    select(ReadName, Isp, PijComb)
+    select(ReadName, Isp, PijComb) %>%
+    rename(prey = ReadName, predator = Isp, Interaction_probability = PijComb)
   
-  colnames(Tab_reseau) <- c("prey", "predator", "Interaction_probability")
-  
-  Tab_reseau$Predator_Class <- substr(Tab_reseau$predator, 1, 3)
-  
-  # Families
-  Tab_reseau <- Tab_reseau %>%
+  # Join families
+  Tab_reseau_All_species_Parc <- Tab_reseau_All_species_Parc %>%
+    left_join(prey_family_df, by = "prey") %>%
     left_join(family_df, by = "predator")
   
-  # Predators
-  predator_order_df <- Tab_reseau %>%
+  # Label cleaning
+  Tab_reseau_All_species_Parc$Predator_Class <- substr(Tab_reseau_All_species_Parc$predator, 1, 3)
+  Tab_reseau_All_species_Parc$Prey_Class <- substr(Tab_reseau_All_species_Parc$prey, 1, 3)
+  
+  Tab_reseau_All_species_Parc$prey <- sapply(Tab_reseau_All_species_Parc$prey, function(x) {
+    parts <- unlist(strsplit(x, "_"))
+    if (tolower(tail(parts, 1)) == "sp") {
+      name <- parts[length(parts) - 1]
+    } else {
+      name <- tail(parts, 1)
+    }
+    name_clean <- paste0(toupper(substring(name, 1, 1)), tolower(substring(name, 2)))
+    paste(name_clean, "sp")
+  })
+  
+  Tab_reseau_All_species_Parc <- Tab_reseau_All_species_Parc %>%
+    mutate(predator = predator %>%
+             str_remove("^[A-Z]{3}_") %>%
+             str_replace_all("_", " "),
+           prey = str_to_sentence(prey))
+  
+  # Taxas order
+  predator_order_df <- Tab_reseau_All_species_Parc %>%
     select(predator, Predator_Class, Predator_Family) %>%
     distinct() %>%
     arrange(Predator_Class, Predator_Family, predator)
   
   ordered_predators <- predator_order_df$predator
   
-  # Sorting
-  group_to_cluster <- intersect(names(group_colors), unique(Tab_reseau_All_species$prey))
+  prey_order_df <- Tab_reseau_All_species_Parc %>%
+    select(prey, Prey_Family, Prey_Class) %>%
+    distinct() %>%
+    arrange(desc(Prey_Family))
   
-  #group_to_cluster <- intersect(names(group_colors), unique(Tab_reseau$prey))
-  remaining_prey <- setdiff(unique(Tab_reseau$prey), group_to_cluster)
-  ordered_sectors <- c(group_to_cluster, remaining_prey, ordered_predators)
-  all_sectors <- unique(c(Tab_reseau$prey, Tab_reseau$predator))
+  ordered_prey <- prey_order_df$prey
   
-  grid.col <- setNames(rep("grey80", length(all_sectors)), all_sectors)
+  # Colors
+  group_colors <- c(
+    "Lobesia sp" = adjustcolor("red", alpha.f = 0.7),
+    "Empoasca sp" = adjustcolor("green4", alpha.f = 0.7),
+    "Scaphoideus sp" = adjustcolor("#4DAF4A", alpha.f = 0.7),
+    "Daktulosphaira sp" = adjustcolor("#984EA3", alpha.f = 0.7)
+  )
+  remaining_prey <- setdiff(unique(Tab_reseau_All_species_Parc$prey), group_to_cluster)
+  ordered_sectors <- c(ordered_prey, ordered_predators)
+  
+  prey_family_groups <- prey_order_df %>%
+    filter(!is.na(Prey_Family)) %>%
+    group_by(Prey_Family) %>%
+    summarise(sectors = list(prey), .groups = "drop")
+  
+  pred_family_df <- unique(Tab_reseau_All_species_Parc[, c("predator", "Predator_Family")])
+  
+  family_colors <- c(
+    "Anyphaenidae" = "#88BBD6",
+    "Araneidae" = "#1B3B6A",
+    "Cheiracanthiidae" = "#5FA6C7",
+    "Clubionidae" = "#23497F",
+    "Linyphiidae" = "#A2CBE4",
+    "Lycosidae" = "#305B8A",
+    "Oxyopidae" = "#76AED1",
+    "Phalangiidae" = "#305B8A",
+    "Philodromidae" = "#99C8DF",
+    "Pisauridae" = "#193F6E",
+    "Salticidae" = "#B1D4E8",
+    "Theridiidae" = "#14406F",
+    "Thomisidae" = "#7FBEDC",
+    "Carabidae" = "#C97D02",
+    "Chrysopidae" = "#B6452C",
+    "Formicidae" = "#7D2C45",
+    "Staphylinidae" = "#C97D40"
+  )
+  
+  family_colors <- sapply(family_colors, adjustcolor, alpha.f = 0.7)
+  
+  pred_color_by_family <- setNames(family_colors[pred_family_df$Predator_Family], pred_family_df$predator)
+  
+  pred_color_by_family <- setNames(family_colors[pred_family_df$Predator_Family], pred_family_df$predator)
+  
+  all_names <- unique(c(Tab_reseau_All_species_Parc$prey, Tab_reseau_All_species_Parc$predator))
+  grid.col <- setNames(rep("grey80", length(all_names)), all_names)
+  grid.col[names(pred_color_by_family)] <- pred_color_by_family
   grid.col[names(group_colors)] <- group_colors
   
-  # Diagram
+  
+  Tab_reseau_All_species_Parc <- Tab_reseau_All_species_Parc %>%
+    mutate(link_color = ifelse(prey %in% group_to_cluster, group_colors[prey], adjustcolor("grey80", alpha.f = 0.5)))
+  
+  
+  # PDF creation
   pdf(paste0("ChordDiagrams_byParc/chord_diagram_", parcelle, ".pdf"), width = 14, height = 14)
   
   chordDiagram(
-    Tab_reseau,
+    Tab_reseau_All_species_Parc,
     grid.col = grid.col,
     annotationTrack = "grid",
     preAllocateTracks = list(
-      list(track.height = max(strwidth(unlist(dimnames(Tab_reseau))))),
+      list(track.height = max(strwidth(unlist(dimnames(Tab_reseau_All_species_Parc))))),
       list(track.height = 0.04),
       list(track.height = 0.02),
       list(track.height = 0.02)
@@ -2724,118 +2807,232 @@ for (parcelle in parcelles) {
   circos.track(
     track.index = 4,
     panel.fun = function(x, y) {
+      sector <- CELL_META$sector.index
       circos.text(
         x = CELL_META$xcenter,
         y = CELL_META$ylim[1],
-        labels = CELL_META$sector.index,
+        labels = parse(text = paste0("italic('", sector, "')")),
         facing = "clockwise",
         niceFacing = TRUE,
         adj = c(0, 0.5),
-        cex = 0.8
+        cex = 0.6
       )
     },
     bg.border = NA
   )
   
-  predator_family_df <- predator_order_df %>%
+  # Highlight predator families
+  family_groups <- predator_order_df %>%
     filter(!is.na(Predator_Family)) %>%
-    select(predator, Predator_Family)
-  
-  family_groups <- predator_family_df %>%
     group_by(Predator_Family) %>%
     summarise(sectors = list(predator), .groups = "drop")
   
   for (i in seq_len(nrow(family_groups))) {
-    sectors <- family_groups$sectors[[i]]
-    fam_name <- family_groups$Predator_Family[i]
-    
     highlight.sector(
-      sector.index = sectors,
+      sector.index = family_groups$sectors[[i]],
       track.index = 1,
       col = NA,
       lwd = 1.2,
-      text = fam_name,
+      text = family_groups$Predator_Family[i],
       cex = 1.0,
       facing = "outside",
       niceFacing = TRUE,
-      text.vjust = 6
+      text.vjust = 6,
+      text.track.height = 0.05
+    )
+  }
+  
+  # Highlight prey families
+  for (i in seq_len(nrow(prey_family_groups))) {
+    highlight.sector(
+      sector.index = prey_family_groups$sectors[[i]],
+      track.index = 1,
+      col = NA,
+      lwd = 1.2,
+      text = prey_family_groups$Prey_Family[i],
+      cex = 1.0,
+      facing = "outside",
+      niceFacing = TRUE,
+      text.vjust = -1,
+      text.track.height = 0.05
     )
   }
   
   dev.off()
-  
-  
-  
-  # Diagram for pests only
-  Tab_reseau_pests <- Tab_reseau %>%
-    filter(prey %in% group_to_cluster)
-  
-  if (nrow(Tab_reseau_pests) > 0) {
-    circos.clear()
-    
-    pdf(paste0("ChordDiagrams_byParc/chord_diagram_pests_", parcelle, ".pdf"), width = 14, height = 14)
-    
-    chordDiagram(
-      Tab_reseau_pests,
-      grid.col = grid.col,
-      annotationTrack = "grid",
-      preAllocateTracks = list(
-        list(track.height = max(strwidth(unlist(dimnames(Tab_reseau_pests))))),
-        list(track.height = 0.04),
-        list(track.height = 0.02),
-        list(track.height = 0.02)
-      ),
-      order = ordered_sectors,
-      transparency = 0.5
-    )
-    
-    circos.track(
-      track.index = 4,
-      panel.fun = function(x, y) {
-        circos.text(
-          x = CELL_META$xcenter,
-          y = CELL_META$ylim[1],
-          labels = CELL_META$sector.index,
-          facing = "clockwise",
-          niceFacing = TRUE,
-          adj = c(0, 0.5),
-          cex = 0.8
-        )
-      },
-      bg.border = NA
-    )
-    
-    present_sectors <- get.all.sector.index()
-    
-    for (i in seq_len(nrow(family_groups))) {
-      sectors <- family_groups$sectors[[i]]
-      sectors_to_highlight <- intersect(sectors, present_sectors)
-      
-      if (length(sectors_to_highlight) == 0) next
-      
-      fam_name <- family_groups$Predator_Family[i]
-      
-      highlight.sector(
-        sector.index = sectors_to_highlight,
-        track.index = 1,
-        col = NA,
-        lwd = 1.2,
-        text = fam_name,
-        cex = 1.0,
-        facing = "outside",
-        niceFacing = TRUE,
-        text.vjust = 6
-      )
-    }
-    
-    dev.off()
-  }
-  }
+}
 
+
+#===============
+# Pests per Parc
+
+
+for (parcelle in liste_parcelles) {
+  
+  Tab_reseau_All_species_Parc <- tab_pij2_All_species_Seuil_1_percent %>%
+    filter(Parc == parcelle) %>%
+    select(ReadName, Isp, PijComb) %>%
+    rename(prey = ReadName, predator = Isp, Interaction_probability = PijComb) %>%
+    left_join(prey_family_df, by = "prey") %>%
+    left_join(family_df, by = "predator")
+  
+  # Label cleaning
+  Tab_reseau_All_species_Parc$Predator_Class <- substr(Tab_reseau_All_species_Parc$predator, 1, 3)
+  Tab_reseau_All_species_Parc$Prey_Class <- substr(Tab_reseau_All_species_Parc$prey, 1, 3)
+  
+  Tab_reseau_All_species_Parc$prey <- sapply(Tab_reseau_All_species_Parc$prey, function(x) {
+    parts <- unlist(strsplit(x, "_"))
+    if (tolower(tail(parts, 1)) == "sp") {
+      name <- parts[length(parts) - 1]
+    } else {
+      name <- tail(parts, 1)
+    }
+    name_clean <- paste0(toupper(substring(name, 1, 1)), tolower(substring(name, 2)))
+    paste(name_clean, "sp")
+  })
+  
+  Tab_reseau_All_species_Parc <- Tab_reseau_All_species_Parc %>%
+    mutate(predator = predator %>%
+             str_remove("^[A-Z]{3}_") %>%
+             str_replace_all("_", " "),
+           prey = str_to_sentence(prey))
+  
+  # Filter pests only
+  Tab_reseau_pests_Parc <- Tab_reseau_All_species_Parc %>%
+    filter(prey %in% group_to_cluster)
+
+  
+  # Taxa order
+  predator_order_df <- Tab_reseau_pests_Parc %>%
+    select(predator, Predator_Class, Predator_Family) %>%
+    distinct() %>%
+    arrange(Predator_Class, Predator_Family, predator)
+  
+  ordered_predators <- predator_order_df$predator
+  ordered_prey <- unique(Tab_reseau_pests_Parc$prey)
+  ordered_sectors <- c(ordered_prey, ordered_predators)
+  
+  
+  
+  # Colors
+  
+  # All names to color (predators + preys)
+  all_names_Parc <- unique(c(Tab_reseau_pests_Parc$prey, Tab_reseau_pests_Parc$predator))
+  
+  # Grey as default color
+  grid.col <- setNames(rep("grey80", length(all_names_Parc)), all_names_Parc)
+  
+  # Unique families list
+  pred_family_df <- unique(Tab_reseau_pests_Parc[, c("predator", "Predator_Family")])
+  
+  familles_unique <- unique(pred_family_df$Predator_Family)
+  family_colors <- c(
+    "Anyphaenidae" = "#88BBD6",
+    "Araneidae" = "#1B3B6A",
+    "Cheiracanthiidae" = "#5FA6C7",
+    "Clubionidae" = "#23497F",
+    "Linyphiidae" = "#A2CBE4",
+    "Lycosidae" = "#305B8A",
+    "Oxyopidae" = "#76AED1",
+    "Phalangiidae" = "#305B8A",
+    "Philodromidae" = "#99C8DF",
+    "Pisauridae" = "#193F6E",
+    "Salticidae" = "#B1D4E8",
+    "Theridiidae" = "#14406F",
+    "Thomisidae" = "#7FBEDC",
+    "Carabidae" = "#C97D02",
+    "Chrysopidae" = "#B6452C",
+    "Formicidae" = "#7D2C45",
+    "Staphylinidae" = "#C97D40"
+  )
+  
+  family_colors <- sapply(family_colors, adjustcolor, alpha.f = 0.7)
+  
+  pred_color_by_family <- setNames(family_colors[pred_family_df$Predator_Family], pred_family_df$predator)
+  
+  
+  # Only replace predators by their family color
+  grid.col[names(pred_color_by_family)] <- pred_color_by_family
+  
+  grid.col[names(group_colors)] <- group_colors
+  
+  grid.col[names(pred_color_by_family)] <- pred_color_by_family
+  
+  
+  # Binds color (color if pest, grey if not)
+  Tab_reseau_pests_Parc <- Tab_reseau_pests_Parc %>%
+    mutate(link_color = ifelse(
+      prey %in% names(group_colors),
+      group_colors[prey],
+      adjustcolor("grey80", alpha.f = 0.5)
+    ))
+  
+  # PDF
+  pdf(paste0("ChordDiagrams_byParc/chord_diagram_pests_", parcelle, ".pdf"), width = 14, height = 14)
+  
+  circos.clear()
+  chordDiagram(
+    Tab_reseau_pests_Parc,
+    grid.col = grid.col,
+    col = Tab_reseau_pests_Parc$link_color,
+    order = ordered_sectors,
+    annotationTrack = "grid",
+    preAllocateTracks = list(
+      list(track.height = max(strwidth(unlist(dimnames(Tab_reseau_pests_Parc))))),
+      list(track.height = 0.04),
+      list(track.height = 0.02),
+      list(track.height = 0.02)
+    ),
+    transparency = 0.5
+  )
+  
+  # Names in italic
+  circos.track(
+    track.index = 4,
+    panel.fun = function(x, y) {
+      sector <- CELL_META$sector.index
+      circos.text(
+        x = CELL_META$xcenter,
+        y = CELL_META$ylim[1],
+        labels = parse(text = paste0("italic('", sector, "')")),
+        facing = "clockwise",
+        niceFacing = TRUE,
+        adj = c(0, 0.5),
+        cex = 0.6
+      )
+    },
+    bg.border = NA
+  )
+  
+  # Highlight families
+  family_groups <- predator_order_df %>%
+    filter(!is.na(Predator_Family)) %>%
+    group_by(Predator_Family) %>%
+    summarise(sectors = list(predator), .groups = "drop")
+  
+  for (i in seq_len(nrow(family_groups))) {
+    highlight.sector(
+      sector.index = family_groups$sectors[[i]],
+      track.index = 1,
+      col = NA,
+      lwd = 1.2,
+      text = family_groups$Predator_Family[i],
+      cex = 1.0,
+      facing = "outside",
+      niceFacing = TRUE,
+      text.vjust = 6,
+      text.track.height = 0.05
+    )
+  }
+  
+  dev.off()
+}
+
+#===============
+# XXIX - Common and missing species for each Parc ===============
+#===============
 
 # Identify predator species for pests (common_species) and missing predators for pests (missing_species)
 # Per Parc values
-#########
 
 group_colors_bis <- c(
   "INS_Tortricidae_Lobesia" = adjustcolor("red", alpha.f = 0.7),
@@ -2843,7 +3040,6 @@ group_colors_bis <- c(
   "INS_Cicadellidae_Scaphoideus" = adjustcolor("#4DAF4A", alpha.f = 0.7),
   "INS_Phylloxeridae_Daktulosphaira" = adjustcolor("#984EA3", alpha.f = 0.7)
 )
-
 
 
 # Tab for common and missing species for each Parc
@@ -2893,4 +3089,4 @@ for (parc in parcelles) {
 Common_and_missing_predator_species_per_Parc_df <- do.call(rbind, summary_list)
 
 
-write.table(Tab_reseau_All_species, file = "Tab_reseau_All_species.txt", sep = "\t", row.names = FALSE)
+write.table(Common_and_missing_predator_species_per_Parc_df, file = "Nb of missing and common species in chord diagrams per Parc.txt", sep = "\t", row.names = FALSE)
